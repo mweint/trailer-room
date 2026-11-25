@@ -1,4 +1,14 @@
-/* Tokens: every colour, size, radius, font and duration. The table in DESIGN.md is the source. */
+/* Tokens: every colour, size, radius, font and duration. The table in DESIGN.md is the source.
+   Both fonts ship with the app (web/fonts, Open Font License). An installed font is never relied on: a fallback
+   has different metrics and puts text off centre in every control. */
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+}
+
 @font-face {
   font-family: "DM Serif Text";
   font-style: normal;

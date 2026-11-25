@@ -1,9 +1,7 @@
 /* Button: the one button. Variants: --icon (round, icon only), --outline (dialog actions), --link (inline retry),
-   --on-video, --flush. Text is trimmed to cap height, so a label centres optically in its button and lines up
-   with any icon beside it; without the trim the space kept for descenders sits it about 1px low. */
+   --on-video, --flush. Labels centre because the shipped UI font (Inter) has balanced metrics; see tokens.css. */
 .button {
   --button-inset: var(--space-3);
-  text-box: trim-both cap alphabetic;
   display: inline-flex;
   align-items: center;
   justify-content: center;

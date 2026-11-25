@@ -26,6 +26,7 @@ from plex import PlexError, PlexSource
 from trailer_selection import rank_trailers
 
 ROOT = Path(__file__).resolve().parent
+mimetypes.add_type("font/woff2", ".woff2")  # Not in every platform's table (Windows lacks it).
 CINEMETA = "https://v3-cinemeta.strem.io"
 RECHECK = 30 * 86400  # Ratings drift and missing films get added, but slowly.
 LETTERBOXD_GAP = 2.0
