@@ -11,12 +11,19 @@ import * as theater from "./ui/theater.js";
 import * as preferences from "./ui/preferences.js";
 import {initCrt} from "./ui/crt.js";
 import {renderQueue, fitQueuePreview, initQueue} from "./ui/queue.js";
-import {renderProgramming, initProgramming} from "./ui/programming.js";
+import * as programming from "./ui/programming.js";
+import {renderFilters, initFilters} from "./ui/filters.js";
 import {plexPreferences} from "./ui/plex.js";
 import {initShortcuts} from "./ui/shortcuts.js";
 
 // Everything the playback layer may ask of the page. Each entry spans the ui
 // modules that own the elements involved, so those modules never import each other.
+// Programming is drawn by two modules: the sources and Plex group, and the filters.
+function renderProgramming() {
+  programming.renderProgramming();
+  renderFilters();
+}
+
 const view = {
   notice: screen.setNotice,
   renderQueue,
@@ -71,6 +78,7 @@ const view = {
   },
   showEmbed: screen.showEmbed,
   playbackChanged() {
+    screen.pictureShown();
     dock.setLocalHover(true);
     dock.scheduleControlsHide();
   },
@@ -110,8 +118,9 @@ initShortcuts({
   clickNext: transport.clickNext
 });
 
-const plexSetup = plexPreferences(syncCollections);
-initProgramming(screen.setNotice, {connectPlex: plexSetup.start, removePlex: plexSetup.remove});
+const plexSetup = plexPreferences(syncCollections, programming.redrawSources);
+programming.initProgramming(screen.setNotice, plexSetup);
+initFilters(screen.setNotice);
 onSync({
   plexStatus: plexSetup.status,
   changed: sourcesChanged,

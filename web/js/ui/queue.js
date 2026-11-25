@@ -81,22 +81,31 @@ function watchPosters() {
   }, {root: $("queue").parentElement, rootMargin: margin});
 }
 
-// pending: enabled sources are still loading. anyEnabled: at least one source is switched on.
-export function renderQueue(queue, pending, anyEnabled) {
+// queue: the rest of this round. next: the following round, shown after it so the list never runs out; with only
+// a few films they simply repeat. pending: enabled sources are still loading. anyEnabled: a source is switched on.
+export function renderQueue(queue, next, pending, anyEnabled) {
   $("queue").closest(".queue").setAttribute("aria-busy", String(pending));
   const list = $("queue");
-  const previous = new Map(Array.from(list.children, row => [row.dataset.id, row]));
+  const previous = new Map(Array.from(list.children, row => [row.dataset.key, row]));
   const before = places(list.children);
   $("remaining").textContent = queue.length ? queue.length.toLocaleString() + " queued" : "";
-  // Keep the existing image nodes when the next film moves up a row.
-  const preview = queue.slice(0, 13);
-  for (const [index, film] of preview.entries()) {
-    let row = previous.get(film.id);
+  // Keep the existing image nodes when the next film moves up a row. A film can appear twice (this round and the
+  // next), so a row is keyed by the film and how many times it has appeared above.
+  const preview = [...queue.map(film => [film, true]), ...next.map(film => [film, false])].slice(0, 13);
+  const seen = new Map();
+  for (const [index, [film, thisRound]] of preview.entries()) {
+    const occurrence = seen.get(film.id) || 0;
+    seen.set(film.id, occurrence + 1);
+    const key = film.id + ":" + occurrence;
+    let row = previous.get(key);
     if (!row) {
       row = queueRow(film);
+      row.dataset.key = key;
       posterWatch.observe(row);
     }
     row.firstChild.onclick = () => skipTo(film);
+    // Remove takes a film out of this round, so it is offered only there.
+    row.querySelector(".queue-remove").hidden = !thisRound;
     if (list.children[index] !== row) {
       list.insertBefore(row, list.children[index] || null);
     }
@@ -106,7 +115,7 @@ export function renderQueue(queue, pending, anyEnabled) {
     list.lastChild.remove();
   }
   glide(list.children, before);
-  $("queueEmpty").textContent = queue.length || pending ? "" :
+  $("queueEmpty").textContent = queue.length || next.length || pending ? "" :
     anyEnabled ? "No more films in this queue." : "Select a film source to build your queue.";
   fitQueuePreview();
 }

@@ -1,17 +1,13 @@
-// Programming: what goes into the rotation. Source switches with counts, failure status and retry;
-// decade and genre chips; the rating filter; the live film count, the summary under Up next and Clear filters.
-import {$, el, resize, reveal} from "../dom.js";
+// Programming: what goes into the rotation. Source switches with counts, failure status and retry; the Plex group
+// and its in-place editor; the live film count and the summary under Up next. The filters are in filters.js.
+import {$, el, resize} from "../dom.js";
 import {refreshSource} from "../api.js";
-import {SOURCES, US_RATINGS, decadeOf, isPlex, tally} from "../catalog.js";
-import {allFilms, enabled, fitsFilters, genreStatus, genresCollecting, genresOf, hidden, isLoaded, plexConnection, statusOf, syncCollections} from "../library.js";
-import {pref, setPref, sourceEnabled, setSourceEnabled, savePrefs} from "../prefs.js";
+import {SOURCES, isPlex} from "../catalog.js";
+import {allFilms, enabled, fitsFilters, hidden, isLoaded, plexConnection, statusOf, syncCollections} from "../library.js";
+import {pref, sourceEnabled, setSourceEnabled, savePrefs} from "../prefs.js";
 import {sourcesChanged} from "../playback/controller.js";
 
-// Genres shown before the "+N" chip; the rest continue in the same flow when it is pressed.
-const FIRST_GENRES = 6;
-
 let notice = () => {};
-let moreGenres = false;
 let plexActions = {};
 
 function failureNote(key, state) {
@@ -71,6 +67,52 @@ function link(text, action) {
   return button;
 }
 
+function plexHeading(name, ...actions) {
+  const heading = el("div", "plex-heading");
+  heading.append(el("span", "plex-heading-name", name), ...actions);
+  return heading;
+}
+
+// Editing Plex happens in the group itself: its heading's actions become Cancel and Save, a server choice appears
+// only when the account has several, and its rows list every library on the server with a switch.
+function plexEditor(edit) {
+  const save = link("Save", () => plexActions.save());
+  save.className = "button button--primary";
+  const anyOn = () => edit.libraries.some(item => item.on);
+  save.disabled = !anyOn();
+  const rows = [plexHeading("Plex" + (edit.serverName ? " · " + edit.serverName : ""),
+    link("Cancel", () => plexActions.cancel()), save)];
+  if (edit.servers?.length > 1) {
+    const field = el("label", "plex-server");
+    const select = el("select", "select");
+    select.append(new Option("Choose a server", ""), ...edit.servers.map(item => new Option(item.name, item.id)));
+    select.value = edit.server || "";
+    select.onchange = () => plexActions.chooseServer(select.value);
+    field.append(el("span", "", "Server"), select);
+    rows.push(field);
+  }
+  for (const library of edit.libraries) {
+    const label = el("label", "source");
+    const input = el("input");
+    input.type = "checkbox";
+    input.checked = library.on;
+    input.onchange = () => {
+      plexActions.toggle(library.id, input.checked);
+      save.disabled = !anyOn();
+    };
+    const logo = el("img", "source-logo plex");
+    logo.alt = "";
+    logo.src = "/logos/plex.svg";
+    label.append(logo, el("span", "source-name", library.name), input, el("span", "switch"));
+    rows.push(label);
+  }
+  if (!edit.servers) {
+    rows.push(link("Use another server", () => plexActions.otherServer()));
+    rows.at(-1).classList.add("button--flush", "plex-other");
+  }
+  return rows;
+}
+
 // Curated sources first, then Plex as its own small group: the server is managed from the group's heading
 // and each library below it is an ordinary source row.
 function renderSources() {
@@ -82,11 +124,12 @@ function renderSources() {
     }
   }
   const plex = plexConnection();
-  if (plex) {
-    const heading = el("div", "plex-heading");
-    heading.append(el("span", "plex-heading-name", "Plex · " + plex.server),
-      link("Change", () => plexActions.connectPlex()), link("Remove", () => plexActions.removePlex()));
-    rows.push(heading);
+  const edit = plexActions.editing?.();
+  if (edit) {
+    rows.push(...plexEditor(edit));
+  } else if (plex) {
+    rows.push(plexHeading("Plex · " + plex.server,
+      link("Change", () => plexActions.change()), link("Remove", () => plexActions.remove())));
     for (const key of plex.libraries) {
       if (SOURCES[key]) {
         rows.push(...sourceRow(key, SOURCES[key], focused));
@@ -95,84 +138,25 @@ function renderSources() {
   } else {
     const add = el("button", "button button--flush source-add", "Connect Plex");
     add.type = "button";
-    add.onclick = () => plexActions.connectPlex();
+    add.onclick = () => plexActions.change();
     rows.push(add);
   }
   $("sources").replaceChildren(...rows);
+}
+
+// Redraws the sources, animating the list's height when opening (true) or closing (false) is given.
+export function redrawSources(opening) {
+  if (opening === undefined) {
+    renderSources();
+  } else {
+    resize($("sources"), renderSources, opening);
+  }
 }
 
 function changed() {
   savePrefs();
   notice();
   sourcesChanged();
-}
-
-// A chip toggles one value in a list preference. "Any" (value null) clears the list.
-function chip(label, list, value) {
-  const button = el("button", "chip", label);
-  const chosen = pref(list);
-  button.type = "button";
-  button.dataset.chip = list + ":" + value;
-  button.setAttribute("aria-pressed", String(value === null ? !chosen.length : chosen.includes(value)));
-  button.onclick = () => {
-    setPref(list, value === null ? [] : chosen.includes(value) ? chosen.filter(v => v !== value) : [...chosen, value]);
-    changed();
-  };
-  return button;
-}
-
-// Rebuilds a chip group, keeping keyboard focus on the same chip.
-function renderChips(group, chips) {
-  const focused = group.contains(document.activeElement) ? document.activeElement.dataset.chip : null;
-  group.replaceChildren(...chips);
-  if (focused) {
-    group.querySelector(`[data-chip="${CSS.escape(focused)}"]`)?.focus({preventScroll: true});
-  }
-}
-
-// Options come from the films of the switched-on sources, so every chip can match something.
-function inSources() {
-  return allFilms().filter(f => f.sources.some(s => sourceEnabled(s)));
-}
-
-function renderDecades(films) {
-  const decades = [...new Set([...films.map(decadeOf), ...pref("decades")])].filter(Boolean).sort((a, b) => a - b);
-  renderChips($("decades"), [chip("Any", "decades", null), ...decades.map(d => chip(d + "s", "decades", d))]);
-}
-
-function renderGenres(films) {
-  const genres = tally(films.flatMap(genresOf));
-  for (const genre of pref("genres")) {
-    if (!genres.includes(genre)) {
-      genres.push(genre);
-    }
-  }
-  // The less common genres continue in the same flow when shown; the toggle is always the last chip.
-  // Chosen genres always show, so a selection is never hidden.
-  const shown = genres.filter((g, i) => moreGenres || i < FIRST_GENRES || pref("genres").includes(g));
-  const extra = genres.length - genres.filter((g, i) => i < FIRST_GENRES || pref("genres").includes(g)).length;
-  const chips = [chip("Any", "genres", null), ...shown.map(g => chip(g, "genres", g))];
-  if (extra) {
-    const toggle = el("button", "chip", moreGenres ? "Show fewer" : "+" + extra);
-    toggle.type = "button";
-    toggle.dataset.chip = "genres:more";
-    toggle.setAttribute("aria-expanded", String(moreGenres));
-    toggle.onclick = () => {
-      resize($("genres"), () => {
-        moreGenres = !moreGenres;
-        renderGenres(inSources());
-      }, !moreGenres);
-    };
-    chips.push(toggle);
-  }
-  renderChips($("genres"), chips);
-  const status = genreStatus();
-  $("genreStatus").textContent = genresCollecting() ?
-    "Still collecting · " + status.done.toLocaleString() + " of " + status.total.toLocaleString() + " films" : "";
-}
-
-function filtersActive() {
-  return pref("decades").length || pref("genres").length || pref("maxRating") || !pref("includeUnrated");
 }
 
 // One line under Up next that says what is applied; it opens the Programming sheet.
@@ -191,42 +175,14 @@ function summary() {
 
 export function renderProgramming() {
   renderSources();
-  const films = inSources();
-  renderDecades(films);
-  renderGenres(films);
   const loaded = Object.keys(SOURCES).every(isLoaded);
   const count = allFilms().filter(f => enabled(f) && !hidden(f)).length;
   $("programmingCount").textContent = loaded ? count.toLocaleString() + (count === 1 ? " film" : " films") : "";
   $("programmingSummary").textContent = summary();
-  reveal($("programmingEmpty"), loaded && !count && !!filtersActive());
 }
 
-// notice(message) writes the status line under the player. plex: {connectPlex(), removePlex()} from plex.js.
+// notice(message) writes the status line under the player. plex: the Plex logic from plex.js, which this module draws.
 export function initProgramming(showNotice, plex) {
   notice = showNotice;
   plexActions = plex;
-  for (const rating of US_RATINGS) {
-    $("maxRating").add(new Option(rating, rating));
-  }
-  $("maxRating").value = pref("maxRating");
-  $("includeUnrated").checked = pref("includeUnrated");
-  $("maxRating").onchange = () => {
-    setPref("maxRating", $("maxRating").value);
-    setPref("includeUnrated", !pref("maxRating"));
-    $("includeUnrated").checked = pref("includeUnrated");
-    changed();
-  };
-  $("includeUnrated").onchange = () => {
-    setPref("includeUnrated", $("includeUnrated").checked);
-    changed();
-  };
-  $("clearFilters").onclick = () => {
-    setPref("decades", []);
-    setPref("genres", []);
-    setPref("maxRating", "");
-    setPref("includeUnrated", true);
-    $("maxRating").value = "";
-    $("includeUnrated").checked = true;
-    changed();
-  };
 }

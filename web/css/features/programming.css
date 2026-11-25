@@ -112,6 +112,20 @@
   font-size: var(--text-meta);
 }
 
+/* While editing: a server choice (only for accounts with several) laid out like a source row. */
+.plex-server {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--source-row-height);
+  font-size: var(--text-ui);
+}
+
+.plex-other {
+  justify-self: start;
+}
+
 .plex-heading-name {
   margin-inline-end: auto;
   font-weight: 600;

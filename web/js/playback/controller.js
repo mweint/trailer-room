@@ -5,7 +5,7 @@ import {
   connectPlayer, nextRun, isCurrentRun, isPlaying, hasPlayer, stopWatchdog, resetPlayer, mount, togglePlayback
 } from "./player.js";
 import {
-  queued, takeNext, rebuildQueue, canRestart, clearRound, avoidRepeat, playableClips, hasSeenFilms, isSeen,
+  queued, nextRound, takeNext, rebuildQueue, canRestart, clearRound, avoidRepeat, playableClips, hasSeenFilms, isSeen,
   markSeen, isUnavailable, markUnavailable, anyClipSeen, markClipSeen, markClipBroken, notePlayed,
   forgetEverything
 } from "./rotation.js";
@@ -49,7 +49,7 @@ export function currentClip() {
 
 function renderQueue() {
   const pending = !queued().length && sourcesPending();
-  view.renderQueue(queued(), pending, anySourceEnabled());
+  view.renderQueue(queued(), nextRound(), pending, anySourceEnabled());
 }
 
 function rebuild(paint = true) {

@@ -95,6 +95,9 @@ Every piece of text has one role, and each role has one size, weight and colour.
 - **Queue rows** span the column. Remove (×) sits at the right end, shows on hover or focus and always on touch, and takes the film out of the current round only; Hide movie in the film options is the lasting version.
 - **Plex** is one server and any number of its film libraries. Each library is its own source (`plex-<library key>`) with its own switch, count and status; the server is managed from the group heading, and the picker offers a switch per library. The browser that connected Plex changes libraries without signing in again (it holds the same key that lets it remove Plex); signing in is needed only to use another server or from another browser. An account with a single server skips the server choice and lists its libraries straight away.
 - **A region that opens or closes carries its spacing inside it.** Its own margin would appear and vanish at once, outside the animated height, so the content below jumps; spacing is padding (which the helper animates to and from zero with the height) or the parent's gap. A message line that changes text is such a region and goes through `resize()`.
+- **Every click shows a response at once.** Next film always shows the loading spinner over the picture, even while the last picture stays up for reuse; a film's details arrive together, so nothing moves after it has loaded.
+- **Progress text waits.** Text like "Finding libraries…" appears only if the wait passes 400ms, so a quick step never flashes it.
+- **Shuffle deals rounds.** Each round plays every eligible film once in a random order, as music players settled on; the next round is dealt in advance, never opens with the film that closed the last, and is shown in Up next after this round, so the list never runs out and a small selection simply repeats.
 - **Status lines show work in progress and errors only.** A finished action (a library connected or removed) is shown by the change itself, so its message clears instead of staying behind.
 - **Every clickable thing sets its own cursor.** A row that is a label is the label itself, so the whole row, switch included, shows one pointer; nothing inherits a cursor from a non-clickable parent.
 - One file per component or feature. A feature file may hold several closely tied roots (`screen.css`: `.display`, `.screen`, `.start`; `dock.css`: `.dock`, `.transport`, `.view-tools`, `.wake-surface`). Formatted one declaration per line.
@@ -128,7 +131,7 @@ Features (`web/css/features/` and `web/js/ui/`). Each has a CSS file; the module
 | Dock | `.dock` | `dock.js`, `transport.js` | Auto-hide and view tools; title, timeline, transport buttons, volume |
 | Film info | `.film-info` | `film-info.js` | Title, credit, facts, description (three lines, More), film options menu |
 | Queue | `.queue` | `queue.js` | Up-next list, poster loading as rows scroll into view, list height |
-| Programming | `.programming` (a sheet) | `programming.js`, `preferences.js`, `plex.js` | Everything about what plays, in groups divided by hairlines: Sources (rows with status and retry; then Plex as its own group: a heading naming the server with Change and Remove links, and one ordinary source row per connected library, or a "Connect Plex" row when none), Decade, Genre (with "Still collecting" progress while the server's pass runs), Rating, then Hidden movies and Skipped trailers folded into one row each with a count. Live film count, Clear filters when nothing matches. Opened from the masthead button and the summary line under Up next. |
+| Programming | `.programming` (a sheet) | `programming.js`, `filters.js`, `preferences.js`, `plex.js` | Everything about what plays, in groups divided by hairlines: Sources (rows with status and retry; then Plex as its own group: a heading naming the server with Change and Remove, and one ordinary source row per connected library, or a "Connect Plex" row when none. Change edits the group in place: the heading's actions become Cancel and Save, a server choice appears only for accounts with several, and the rows list every library on the server with a switch; no separate form), Decade, Genre (with "Still collecting" progress while the server's pass runs), Rating, then Hidden movies and Skipped trailers folded into one row each with a count. Live film count, Clear filters when nothing matches. Opened from the masthead button and the summary line under Up next. |
 
 `theater.js` (theater mode, fullscreen; styled in `layout.css`) and `shortcuts.js` have no CSS file of their own.
 
@@ -150,7 +153,8 @@ playback/
   vimeo.js         Vimeo adapter
 ui/
   screen.js  crt.js  dock.js (auto-hide, view tools)  transport.js (title, timeline, buttons, volume)
-  film-info.js  queue.js  programming.js  preferences.js  plex.js
+  film-info.js  queue.js  programming.js (sources, Plex group, count, summary)  filters.js (decade, genre, rating)
+  preferences.js  plex.js (Plex logic; programming.js draws it)
   theater.js (theater mode, fullscreen)  shortcuts.js
 ```
 

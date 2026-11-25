@@ -1,4 +1,5 @@
-/* Inside the Programming sheet: Plex setup (part of Sources) and the hidden and skipped lists with Restore. */
+/* Inside the Programming sheet: the Plex message line and the hidden and skipped lists with Restore.
+   The Plex group and its editor are drawn as source rows (programming.css). */
 /* No margin of its own: it holds only regions that open and close, which carry their spacing inside. */
 .plex-settings {
   display: grid;
@@ -7,49 +8,6 @@
 .plex-settings p {
   font-size: var(--text-ui);
   overflow-wrap: anywhere;
-}
-
-/* The picker is built only from shared parts: group labels, the select, switch rows and buttons. */
-.plex-picker {
-  display: grid;
-  gap: var(--space-3);
-  padding-top: var(--space-3);
-}
-
-.plex-field {
-  display: grid;
-}
-
-.plex-picker .select {
-  width: 100%;
-}
-
-.plex-libraries {
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.plex-libraries legend {
-  padding: 0;
-}
-
-/* One switch per library, laid out like a source row. */
-.plex-library {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  position: relative;
-  min-height: var(--control);
-  font-size: var(--text-ui);
-  cursor: pointer;
-}
-
-.plex-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
 }
 
 .plex-message:not(:empty) {

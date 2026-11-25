@@ -1,14 +1,18 @@
-// Queue order for one round: shuffle scores, what has been seen, and what cannot be played. No DOM.
+// Queue order, shuffled the way music players settled on: each round deals every eligible film once in a random
+// order, then the next round is dealt afresh, never opening with the film that closed the last. The next round is
+// dealt in advance, so Up next continues past the end of this one. Also what has been seen and cannot play. No DOM.
 import {matches} from "../catalog.js";
 import {allFilms, enabled, hidden} from "../library.js";
 import {pref} from "../prefs.js";
 
 const scores = new Map();
+const nextScores = new Map();
 const unavailable = new Set();
 const broken = new Set();
 const seenFilms = new Set();
 const seenVideos = new Set();
 let queue = [];
+let lastEligible = [];
 let lastPlayed = "";
 
 export const videoKey = v => v.provider + "/" + v.id;
@@ -29,6 +33,7 @@ export function rebuildQueue(current) {
       scores.set(film.id, Math.random());
     }
   }
+  lastEligible = eligible;
   queue = eligible
     .filter(f => !matches(f, seenFilms) && f.id !== current?.id)
     .sort((a, b) => scores.get(a.id) - scores.get(b.id));
@@ -39,10 +44,31 @@ export function canRestart(eligible) {
   return !!eligible.length && !!seenFilms.size;
 }
 
+// The new round takes the order already shown for it in Up next.
 export function clearRound() {
   seenFilms.clear();
   seenVideos.clear();
   scores.clear();
+  for (const [id, score] of nextScores) {
+    scores.set(id, score);
+  }
+  nextScores.clear();
+}
+
+// The round after this one, in the order it will play: every eligible film again, and, as avoidRepeat does,
+// not opening with the film that closes this round.
+export function nextRound() {
+  for (const film of lastEligible) {
+    if (!nextScores.has(film.id)) {
+      nextScores.set(film.id, Math.random());
+    }
+  }
+  const order = [...lastEligible].sort((a, b) => nextScores.get(a.id) - nextScores.get(b.id));
+  const closing = queue.at(-1)?.id ?? lastPlayed;
+  if (order.length > 1 && order[0].id === closing) {
+    order.push(order.shift());
+  }
+  return order;
 }
 
 // Do not open a new round with the film that closed the last one.

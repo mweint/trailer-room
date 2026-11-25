@@ -135,18 +135,8 @@
     <p id="programmingEmpty" class="collapse programming-empty" hidden>No films match. <button id="clearFilters" class="button button--inline" type="button">Clear filters</button></p>
     <section class="programming-group" aria-labelledby="sourcesLabel">
       <h3 class="programming-label" id="sourcesLabel">Sources</h3>
-      <div id="sources" class="source-list"></div>
+      <div id="sources" class="source-list collapse"></div>
       <section class="plex-settings" aria-label="Plex library">
-        <form id="plexPicker" class="plex-picker collapse" hidden>
-          <div id="plexServerField" class="plex-field">
-            <label for="plexServer" class="programming-label">Server</label>
-            <select id="plexServer" class="select"></select>
-          </div>
-          <p id="plexCurrent" class="plex-current" hidden>Libraries on <span id="plexCurrentName"></span>. <button id="plexOtherServer" class="button button--inline" type="button">Use another server</button></p>
-          <fieldset class="plex-libraries"><legend class="programming-label">Libraries</legend><div id="plexLibraries"></div></fieldset>
-          <div class="plex-actions"><button id="plexSave" class="button button--primary" type="submit" disabled>Save</button>
-            <button id="plexCancel" class="button button--text" type="button">Cancel</button></div>
-        </form>
         <p id="plexMessage" class="collapse plex-message" role="status"></p>
       </section>
     </section>

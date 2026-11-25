@@ -29,20 +29,33 @@ function setStartPending(pending) {
   }
 }
 
-// keepPicture leaves the cover and artwork hidden so the reused embed stays visible.
+// Whether the last picture stays on screen while the next trailer loads into the same player.
+let keptPicture = false;
+
+// keepPicture leaves the artwork hidden so the reused embed stays visible. The cover always shows while a film
+// loads: it is transparent, so over a kept picture it adds only the spinner, and a click always shows a response.
 export function resetScreen(keepPicture, clearEmbed) {
   if (clearEmbed) {
     $("embed").replaceChildren();
   }
-  $("art").hidden = $("cover").hidden = keepPicture;
+  keptPicture = keepPicture;
+  $("art").hidden = keepPicture;
+  $("cover").hidden = false;
   setStartPending(false);
   $("start").hidden = true;
 }
 
+// Over a kept picture the spinner stays until the new trailer plays; otherwise the play pill shows its own.
 export function mountStarting() {
+  $("cue").textContent = keptPicture ? "Loading trailer" : "";
+  $("start").hidden = keptPicture;
+  setStartPending(!keptPicture);
+}
+
+// The trailer is playing (or paused) in the embed: the loading cover goes.
+export function pictureShown() {
+  $("cover").hidden = true;
   $("cue").textContent = "";
-  $("start").hidden = $("cover").hidden;
-  setStartPending(!$("cover").hidden);
 }
 
 export function showEmbed(target) {
