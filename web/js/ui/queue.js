@@ -21,6 +21,7 @@ function removeButton(film) {
 function queueRow(film) {
   const li = el("li", "queue-item");
   const button = el("button", "button button--flush queue-row");
+  button.title = film.title;
   const text = el("span");
   const fallback = el("span", "poster", film.title[0]);
   fallback.setAttribute("aria-hidden", "true");

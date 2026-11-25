@@ -10,8 +10,6 @@ export function showFilmInfo(film, info, clip, link) {
   $("filmInfo").hidden = false;
   $("filmInfo").setAttribute("aria-busy", "false");
   $("credit").textContent = info?.directors?.length ? "Directed by " + info.directors.join(" & ") : "";
-  const likes = clip?.likes != null ?
-    new Intl.NumberFormat(undefined, {notation: "compact"}).format(clip.likes) + " trailer likes" : "";
   $("meta").textContent = [
     film.year,
     film.certification,
@@ -19,7 +17,6 @@ export function showFilmInfo(film, info, clip, link) {
     info?.genres?.slice(0, 2).join(", "),
     sourceNames(film)
   ].filter(Boolean).join(" · ");
-  $("clipMeta").textContent = [clip?.height ? clip.height + "p source" : "", likes].filter(Boolean).join(" · ");
   $("synopsis").textContent = info?.description || "";
   setSynopsisExpanded(false);
   $("hide").disabled = false;
@@ -32,11 +29,12 @@ function setSynopsisExpanded(expanded) {
   fitSynopsis();
 }
 
-// The toggle shows only when the description runs past its three clamped lines (--synopsis-lines in CSS).
+// The toggle shows only when the description runs past its clamped lines (--synopsis-lines in CSS, e.g. "2lh").
 // Measured against the clamp, not the current height, so it stays put while the text animates.
 function fitSynopsis() {
   const text = $("synopsis");
-  const clamp = 3 * parseFloat(getComputedStyle(text).lineHeight);
+  const style = getComputedStyle(text);
+  const clamp = parseFloat(style.getPropertyValue("--synopsis-lines")) * parseFloat(style.lineHeight);
   $("synopsisToggle").hidden = text.scrollHeight <= clamp + 1;
 }
 

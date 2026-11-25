@@ -159,9 +159,15 @@
   display: block;
 }
 
+/* Item role: at most two lines, then an ellipsis; the full title is the row's tooltip.
+   Two title lines plus the year fit the poster's height, so every row is the same height. */
 .queue-title {
-  font-size: var(--text-body);
-  line-height: 1.25rem;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: var(--text-ui);
+  line-height: 1.125rem;
   font-weight: 600;
   overflow-wrap: anywhere;
 }

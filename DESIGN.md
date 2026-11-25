@@ -61,14 +61,14 @@ Every colour, and every shared size, radius, font size and duration, is a token.
 
 ## Type roles
 
-Every piece of text has one role, and each role has one size, weight and colour. Roles are told apart by size and weight first and colour second. Two neighbouring roles never differ by colour alone.
+Every piece of text has one role, and each role has one size, weight and colour. The page is quiet, so sizes stay small: only the film title is above `--text-ui`, apart from section headings and the wordmark. Roles are told apart by weight, colour and grouping, not by making text bigger. Two neighbouring roles never differ by colour alone. The reference is YouTube's watch page, which has the same layout: a list beside the player and a description below it.
 
 | Role | Size | Weight | Colour | Examples |
 | --- | --- | --- | --- | --- |
 | Title | `--text-title` | 600 | `--color-text` | Film title |
 | Section | `--text-section` | 600 | `--color-text` | Up next, Film sources, Preferences |
-| Body | `--text-body`, line-height 1.5, at most `--measure` wide | 400 | `--color-text` | Film description |
-| Item | `--text-body` | 600 | `--color-text` | Queue row title |
+| Body | `--text-ui`, line-height 1.375rem, at most `--measure` wide; two lines until More | 400 | `--color-text` | Film description |
+| Item | `--text-ui`, at most two lines then an ellipsis (full text in the tooltip) | 600 | `--color-text` | Queue row title |
 | Byline | `--text-ui` | 400 | `--color-text-secondary` | Directed by |
 | Control | `--text-ui` | 400 | inherited | Buttons, labels, menu items |
 | Meta | `--text-meta`, tabular figures | 400 | `--color-text-muted` | Year, runtime, genres, counts |
@@ -82,7 +82,7 @@ Every piece of text has one role, and each role has one size, weight and colour.
 - State attributes set by JavaScript: `data-crt` on `.screen`; `data-controls="hidden"`, `data-hover="local"` and `data-transport` on `.display`; `data-theater` on `.page`; `data-expanded` on `.theater`.
 - No `style="…"` attributes. JavaScript writes only these custom properties: `--fill` (range), `--queue-height` (queue), `--art` (screen artwork), `--beam` `--triad` `--tube-texture` (CRT).
 - **Every show or hide that moves layout animates.** A collapsible block is a one-row grid whose row goes between `1fr` and `0fr`, with a clipped body inside; this animates in every current browser. Its row size uses `--ease-in-out`, over `--motion-layout` when opening and `--motion-layout-exit` when closing, and the content fades with ease-out. Neighbours that size from it (the queue) follow frame by frame. Height-to-`auto` transitions (`interpolate-size` on `:root`) are used only where a grid cannot express the end state (the description's three-line clamp) and snap in browsers without them. Closed content also gets `visibility: hidden`, so it leaves the tab order and the accessibility tree. Under `prefers-reduced-motion: reduce` the size snaps and only the fade remains.
-- **Clipped content fades; it is never cut hard.** Where more content sits past an edge, that edge fades over a mask: the queue's top and bottom (only while rows are hidden there) and the description's last line. Masks use `black` and `transparent` as alpha only; they are not colours.
+- **Clipped content fades; it is never cut hard.** Where more content sits past an edge, that edge fades over a mask: the queue's top and bottom (only while rows are hidden there) and the description's last line. A label (a title in a list) truncates with an ellipsis instead. Masks use `black` and `transparent` as alpha only; they are not colours.
 - **Labels align to the column; fills bleed.** A button whose label must line up with a column edge (queue rows, the sources toggle, More) uses `.button--flush`: it keeps its padding and takes an equal negative margin, so the hover fill extends past the column instead of the text sitting off it. A scroll box around flush rows pads by the same inset and cancels it with a negative margin, so the fill is not clipped; on the scrollbar side it pads one inset more, so fills never run under a scrollbar. A row with a thumbnail uses the same inset on every side of it, and its corners are concentric with the thumbnail's (outer radius ≈ inner radius + inset).
 - **Queue rows** span the column. Remove (×) sits at the right end, shows on hover or focus and always on touch, and takes the film out of the current round only; Hide movie in the film options is the lasting version.
 - One file per component or feature. A feature file may hold several closely tied roots (`screen.css`: `.display`, `.screen`, `.start`; `dock.css`: `.dock`, `.transport`, `.view-tools`, `.wake-surface`). Formatted one declaration per line.
