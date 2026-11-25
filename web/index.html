@@ -9,6 +9,23 @@
 <body>
   <svg width="0" height="0" class="definitions" aria-hidden="true">
     <defs>
+      <filter id="crt-convergence" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <!-- The CSS corner mask mixes this one-pixel red-beam shift into the picture. -->
+        <feOffset in="SourceGraphic" dx="1" result="shifted"/>
+        <feColorMatrix in="shifted" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red"/>
+        <feColorMatrix in="SourceGraphic" values="0 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0" result="cyan"/>
+        <feBlend in="red" in2="cyan" mode="screen"/>
+      </filter>
+      <filter id="crt-bloom" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <!-- Spread a small fraction of bright phosphor light over the sharp picture. -->
+        <feComponentTransfer in="SourceGraphic">
+          <feFuncR type="linear" slope=".3" intercept="-.2"/>
+          <feFuncG type="linear" slope=".3" intercept="-.2"/>
+          <feFuncB type="linear" slope=".3" intercept="-.2"/>
+        </feComponentTransfer>
+        <feGaussianBlur stdDeviation="2"/>
+        <feBlend in2="SourceGraphic" mode="screen"/>
+      </filter>
       <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
       <symbol id="i-next" viewBox="0 0 24 24"><path d="m5 5 11 7-11 7z" fill="currentColor" stroke="none"/><path d="M18 5v14"/></symbol>
       <symbol id="i-full" viewBox="0 0 24 24"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m6 0h5v-5"/></symbol>
@@ -32,6 +49,8 @@
       <div class="display" id="stage" data-transport="preview" tabindex="-1" role="group" aria-label="Trailer screen">
         <div id="screen" class="screen">
           <div id="art"></div><div id="embed"></div>
+          <div class="tube-optics" aria-hidden="true"></div>
+          <div class="tube-convergence" aria-hidden="true"></div>
           <div class="raster" aria-hidden="true">
             <svg viewBox="0 0 1000 562.5" preserveAspectRatio="none">
               <path fill="#060707" fill-rule="evenodd" d="M0 0h1000v562.5H0z M1.8 12Q2 3 13 2.8Q500 -1 987 2.8Q998 3 998.2 12Q1001 280 998.2 550.5Q998 559.5 987 559.7Q500 563.5 13 559.7Q2 559.5 1.8 550.5Q-1 280 1.8 12Z"/>

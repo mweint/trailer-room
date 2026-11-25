@@ -60,6 +60,20 @@ main.theater-mode { width: 100%; grid-template-columns: minmax(0, 1fr); }
   /* Leave opaque backing under the antialiased outer edge of the glass. */
   inset: 2px; width: auto; height: auto; overflow: hidden; border-radius: 6px;
 }
+.tube-optics, .tube-convergence { display: none; pointer-events: none; }
+.crt-on :is(.tube-optics, .tube-convergence) {
+  /* Filter the composed picture; filtering the iframe itself can omit video frames. */
+  display: block; position: absolute; inset: 2px; border-radius: 6px;
+}
+.crt-on .tube-optics {
+  -webkit-backdrop-filter: url(#crt-bloom);
+  backdrop-filter: url(#crt-bloom);
+}
+.crt-on .tube-convergence {
+  -webkit-backdrop-filter: url(#crt-convergence);
+  backdrop-filter: url(#crt-convergence);
+  mask-image: radial-gradient(ellipse farthest-corner, transparent 55%, #0005);
+}
 #art { background: #181a1d center / cover no-repeat; }
 #cover { display: grid; place-content: center; justify-items: center; gap: 8px; pointer-events: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

@@ -24,7 +24,7 @@ The connection belongs to this installation. Everyone who can open it can see th
 
 A startup or visit checks for changes once a day. If Plex is unreachable, the source shows its last good list and offers a retry. In Preferences, **Change library** opens the picker. **Remove library** asks for confirmation and clears the imported list and server credential from this installation. The browser that connected the library can remove it directly. For older connections, other browsers, or after clearing cookies, Plex asks the owner to sign in.
 
-Choosing a specific maximum U.S. rating switches **Include unrated films** off. Turn it on to include films marked unrated or missing a U.S. rating. Returning to **Any rating** keeps the switch where you left it. Each browser remembers the two visible choices.
+Choosing a specific maximum U.S. rating switches **Include unrated films** off. Choosing **Any rating** switches it on. You can override either choice to include or exclude films marked unrated or missing a U.S. rating. Each browser remembers the two visible choices.
 
 ## Catalog updates
 

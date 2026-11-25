@@ -688,7 +688,7 @@ $("maxRating").value = prefs.maxRating;
 $("includeUnrated").checked = prefs.includeUnrated;
 $("maxRating").onchange = () => {
   prefs.maxRating = $("maxRating").value;
-  if (prefs.maxRating) prefs.includeUnrated = false;
+  prefs.includeUnrated = !prefs.maxRating;
   $("includeUnrated").checked = prefs.includeUnrated;
   save(); setNotice(); sourcesChanged();
 };
