@@ -5,6 +5,7 @@ import {plexCall as call} from "../api.js";
 
 const flowKey = "trailer-room.plex-setup";
 const removalKey = "trailer-room.plex-remove";
+const PROGRESS_DELAY = 400;
 
 function options(select, prompt, entries = []) {
   select.replaceChildren(new Option(prompt, ""), ...entries.map(item => new Option(item.name, item.id)));
@@ -43,7 +44,21 @@ export function plexPreferences(sync) {
   let busy = false;
 
   // The message line grows and shrinks with its text, like any region that appears in place.
+  let pending;
+
+  // Progress text ("Finding libraries…") appears only if the wait passes PROGRESS_DELAY, so a quick step
+  // never flashes it. Any other message replaces it at once.
+  function working(text) {
+    clearTimeout(pending);
+    pending = setTimeout(() => show(text), PROGRESS_DELAY);
+  }
+
   function say(text) {
+    clearTimeout(pending);
+    show(text);
+  }
+
+  function show(text) {
     if (message.textContent !== text) {
       resize(message, () => {
         message.textContent = text;
@@ -61,7 +76,7 @@ export function plexPreferences(sync) {
       return;
     }
     busy = true;
-    say("Opening Plex sign-in…");
+    working("Opening Plex sign-in…");
     try {
       const result = await call("begin");
       sessionStorage.setItem(flowKey, result.flow);
@@ -100,7 +115,7 @@ export function plexPreferences(sync) {
     if (!state) {
       return signIn();
     }
-    say("Finding libraries…");
+    working("Finding libraries…");
     try {
       const result = await call("manage");
       if (result.signInRequired) {
@@ -133,12 +148,12 @@ export function plexPreferences(sync) {
       const connection = sessionStorage.getItem(removalKey);
       if (connection) {
         sessionStorage.removeItem(removalKey);
-        say("Removing Plex…");
+        working("Removing Plex…");
         await call("disconnect", {flow, connection});
         await removed();
         return;
       }
-      say("Finding your servers…");
+      working("Finding your servers…");
       const result = await call("servers", {flow});
       signedIn(true);
       options(server, "Choose a server", result.servers);
@@ -163,7 +178,7 @@ export function plexPreferences(sync) {
     if (!selected) {
       return;
     }
-    say("Finding libraries…");
+    working("Finding libraries…");
     try {
       const result = await call("libraries", {flow, server: selected});
       if (server.value !== selected) {
@@ -188,7 +203,7 @@ export function plexPreferences(sync) {
     const body = flow ? {flow, server: server.value, library} : {library};
     server.disabled = save.disabled = $("plexCancel").disabled = true;
     busy = true;
-    say("Importing films…");
+    working("Importing films…");
     try {
       const result = await call("connect", body);
       if (result.signInRequired) {
@@ -219,7 +234,7 @@ export function plexPreferences(sync) {
     }
     const connection = state.connection;
     busy = true;
-    say("Removing Plex…");
+    working("Removing Plex…");
     try {
       const result = await call("disconnect", {connection, ...(picker.hidden ? {} : {flow})});
       if (result.signInRequired) {

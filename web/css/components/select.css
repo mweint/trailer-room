@@ -4,7 +4,7 @@
 .select {
   --select-chevron: var(--icon-sm);
   min-height: var(--control);
-  font-size: var(--text-ui);
+  font-size: var(--control-text);
   padding-inline: var(--space-3) calc(var(--space-3) + var(--select-chevron) + var(--space-1));
   appearance: none;
   background-color: var(--color-surface);

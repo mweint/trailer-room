@@ -14,7 +14,7 @@
   border: 0;
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: var(--text-ui);
+  font-size: var(--control-text);
 }
 
 .button:hover:enabled {

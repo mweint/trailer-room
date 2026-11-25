@@ -1,10 +1,11 @@
 /* Dialog: the native modal <dialog>, centred, or as a sheet (--sheet) docked to the right edge at full height.
    Opening and closing motion runs in dom.js openDialog() and closeDialog(); this file holds only the states.
    The heading row ends with an icon close button. */
-/* Inside a dialog every control (buttons, chips, selects, the close button) is the compact size, set once here,
-   so a panel never mixes control heights. Touch keeps the larger size. */
+/* Inside a dialog every control (buttons, chips, selects, the close button) is the compact size with compact text,
+   set once here, so a panel never mixes control sizes. Touch keeps the larger size. */
 .dialog {
   --control: var(--control-sm);
+  --control-text: var(--control-text-sm);
   --dialog-width: 27.5rem;
   width: min(var(--dialog-width), 92vw);
   max-height: 80vh;
