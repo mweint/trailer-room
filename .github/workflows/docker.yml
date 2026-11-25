@@ -1,20 +1,30 @@
 name: Docker
 on: [push, workflow_dispatch]
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
       - run: python3 -B -m unittest discover -s tests
-      - run: docker compose up --build -d
+      - run: docker build -t ghcr.io/mweint/trailer-room:latest .
+      - run: docker compose up --pull never -d
       - name: Check the running app and report its footprint
         run: |
           curl -fsS --retry 12 --retry-all-errors --retry-delay 1 -o "$RUNNER_TEMP/trailer-index.html" http://127.0.0.1:8765/
           grep -q 'Trailer Room' "$RUNNER_TEMP/trailer-index.html"
           curl -fsS localhost:8765/api/collections | python3 -c 'import json,sys; assert set(json.load(sys.stdin)["sources"]) == {"criterion","a24","janus","neon"}'
           id=$(docker compose ps -q trailer-room)
+          docker compose exec -T trailer-room sh -c 'grep "^Uid:" /proc/1/status | grep -qw 1000'
+          docker compose exec -T -u 1000:1000 trailer-room sh -c 'touch /data/.write-check && rm /data/.write-check'
+          test "$(stat -c '%u:%g' /data/appdata/trailer-room)" = "1000:1000"
           docker image inspect "$(docker inspect -f '{{.Image}}' "$id")" --format 'Image bytes {{.Size}}'
           for i in $(seq 1 35); do
             if curl -fsS localhost:8765/api/collections | python3 -c 'import json,sys; sys.exit(any(s["refreshing"] for s in json.load(sys.stdin)["sources"].values()))'; then break; fi
@@ -23,6 +33,13 @@ jobs:
           curl -fsS localhost:8765/api/collections | python3 -c 'import json,sys; d=json.load(sys.stdin); print({s: (len(rows), d["sources"][s]["error"]) for s,rows in d["catalogs"].items()})'
           docker stats --no-stream --format 'Memory {{.MemUsage}} | CPU {{.CPUPerc}}' "$id"
           docker compose exec -T trailer-room du -sh /data
+      - name: Publish the tested image
+        if: github.repository == 'mweint/trailer-room' && github.ref == 'refs/heads/main'
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker push ghcr.io/mweint/trailer-room:latest
       - if: failure()
         run: docker compose logs --tail 80
       - if: always()

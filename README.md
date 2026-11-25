@@ -5,14 +5,14 @@ A self-hosted trailer player for Criterion Collection, A24, NEON and Janus Films
 ## Run on a home server
 
 ```sh
-git clone https://github.com/mweint/trailer-room.git
-cd trailer-room
-docker compose up -d --build
+docker compose up -d
 ```
 
-Open `http://YOUR-SERVER-IP:8765` using the server's LAN IP. The four lists load independently on first launch. Playback starts when you click Play. YouTube and Vimeo stream directly to the viewer. The container runs one Python service with standard-library dependencies, fetches metadata and caches catalog JSON in the named `catalogs` volume. It needs outbound HTTPS. No API keys or Plex connection are required.
+Run the command above from the directory containing [compose.yaml](compose.yaml), or add the service from that file to an existing stack. Compose pulls `ghcr.io/mweint/trailer-room:latest` for Linux x86-64. The service stores its catalog JSON and refresh history in `/data/appdata/trailer-room` on the host. At startup it prepares that directory and runs the player as `PUID:PGID` (default `1000:1000`).
 
-**Portainer (Docker Standalone)**. Under **Stacks → Add stack → Repository**, use `https://github.com/mweint/trailer-room`, reference `refs/heads/main`, and Compose path `compose.yaml`. Deploy the stack. To update a CLI installation, run `git pull --ff-only` and then `docker compose up -d --build`. Keep the named volume to preserve catalog history.
+Open `http://YOUR-SERVER-IP:8765` using the server's LAN IP. The four lists load independently on first launch. Click Play to start streaming directly from YouTube or Vimeo. No API keys or Plex connection are required.
+
+**Updates.** In Portainer, redeploy the stack with image re-pulling enabled. From the CLI, run `docker compose pull trailer-room` and then `docker compose up -d trailer-room`. The host directory persists across container replacements. If upgrading from the old named volume, the new directory fills on first launch. Player preferences stay in the browser at the same site address.
 
 ## Catalog updates
 
