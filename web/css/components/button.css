@@ -15,7 +15,22 @@
 }
 
 .button:hover:enabled {
-  background: var(--color-surface-hover);
+  background: var(--color-hover);
+}
+
+.button {
+  transition: background-color var(--motion-fast) var(--ease-colour);
+}
+
+/* Press feedback. */
+@media (prefers-reduced-motion: no-preference) {
+  .button {
+    transition: background-color var(--motion-fast) var(--ease-colour), transform var(--motion-press) var(--ease-out);
+  }
+
+  .button:active:enabled {
+    transform: scale(.97);
+  }
 }
 
 .button:disabled {

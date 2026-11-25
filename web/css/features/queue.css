@@ -97,7 +97,7 @@
 }
 
 .queue-item:hover .queue-row {
-  background: var(--color-surface-hover);
+  background: var(--color-hover);
 }
 
 /* Inside the scroll box the focus ring is drawn inward so it is not clipped. */
@@ -131,10 +131,11 @@
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .queue-remove {
-    transition: opacity var(--motion-fast) var(--ease-out);
-  }
+.queue-remove {
+  transition:
+    opacity var(--motion-fast) var(--ease-colour),
+    color var(--motion-fast) var(--ease-colour),
+    transform var(--motion-press) var(--ease-out);
 }
 
 .queue-row img,

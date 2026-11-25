@@ -8,19 +8,21 @@
 }
 
 :root {
-  /* Page */
+  /* Page: pure greys. Hue appears only where it means something (focus, warning). */
   --color-bg: #0f0f0f;
-  --color-surface: #1b1c1a;
-  --color-surface-raised: #22231f;
-  --color-surface-hover: #252620;
-  --color-placeholder: #2a2b27;
-  --color-border: #33342e;
-  --color-border-strong: #444540;
+  --color-surface: #1b1b1b;
+  --color-surface-raised: #222222;
+  --color-placeholder: #2a2a2a;
+  --color-border: #333333;
+  --color-border-strong: #444444;
+
+  /* Hover and pressed fill: a white overlay, so it reads the same on every surface. */
+  --color-hover: #ffffff12;
 
   /* Text */
-  --color-text: #f4f3ed;
-  --color-text-secondary: #c9cac5;
-  --color-text-muted: #a7a8a0;
+  --color-text: #f2f2f2;
+  --color-text-secondary: #c8c8c8;
+  --color-text-muted: #a3a3a3;
 
   /* State */
   --color-focus: #c2d5ff;
@@ -64,11 +66,16 @@
   --text-section: 1.125rem;
   --text-title: 1.25rem;
   --text-brand: 1.5rem;
+  --measure: 65ch;
 
   /* Motion */
-  --motion-fast: 140ms;
-  --motion-base: 220ms;
-  --ease-out: cubic-bezier(.22, 1, .36, 1);
-  --motion-layout: 360ms;
-  --ease-layout: cubic-bezier(.4, 0, .2, 1);
+  /* Curves and durations follow Emil Kowalski's design-engineering guide; DESIGN.md says which to use when. */
+  --motion-press: 120ms;
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --motion-layout: 250ms;
+  --motion-layout-exit: 200ms;
+  --ease-out: cubic-bezier(.23, 1, .32, 1);
+  --ease-in-out: cubic-bezier(.77, 0, .175, 1);
+  --ease-colour: ease;
 }

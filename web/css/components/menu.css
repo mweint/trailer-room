@@ -28,7 +28,7 @@
 
 .menu[open] .menu-toggle,
 .menu-toggle:hover {
-  background: var(--color-surface-hover);
+  background: var(--color-hover);
   color: var(--color-highlight);
 }
 
@@ -55,8 +55,25 @@
   color: var(--color-text-muted);
 }
 
+.menu-item {
+  transition: background-color var(--motion-fast) var(--ease-colour);
+}
+
+/* Opening: the list grows from its trigger. Closing is instant. */
+.menu-list {
+  transform-origin: top right;
+  transition: opacity var(--motion-base) var(--ease-out);
+}
+
+@starting-style {
+  .menu[open] .menu-list {
+    opacity: 0;
+    transform: scale(.95);
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  .menu-item {
-    transition: background-color var(--motion-fast) var(--ease-out);
+  .menu-list {
+    transition: opacity var(--motion-base) var(--ease-out), transform var(--motion-base) var(--ease-out);
   }
 }

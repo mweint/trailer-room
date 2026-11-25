@@ -44,16 +44,33 @@
   visibility: hidden;
 }
 
+/* Opening uses --motion-layout and closing the shorter exit time; each transition is set on the state it leads to.
+   Under reduced motion only the fade remains. */
+.source-options {
+  transition: opacity var(--motion-layout) var(--ease-out), visibility var(--motion-layout);
+}
+
+.sources:has(.sources-toggle[aria-expanded=false]) .source-options {
+  transition: opacity var(--motion-layout-exit) var(--ease-out), visibility var(--motion-layout-exit);
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .sources-toggle .icon {
-    transition: transform var(--motion-layout) var(--ease-layout);
+    transition: transform var(--motion-layout) var(--ease-in-out);
   }
 
   .source-options {
     transition:
-      grid-template-rows var(--motion-layout) var(--ease-layout),
-      opacity var(--motion-layout) var(--ease-layout),
+      grid-template-rows var(--motion-layout) var(--ease-in-out),
+      opacity var(--motion-layout) var(--ease-out),
       visibility var(--motion-layout);
+  }
+
+  .sources:has(.sources-toggle[aria-expanded=false]) .source-options {
+    transition:
+      grid-template-rows var(--motion-layout-exit) var(--ease-in-out),
+      opacity var(--motion-layout-exit) var(--ease-out),
+      visibility var(--motion-layout-exit);
   }
 }
 

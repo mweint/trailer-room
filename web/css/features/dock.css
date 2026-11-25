@@ -154,12 +154,6 @@
   display: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .dock {
-    transition: none;
-  }
-}
-
 @media (pointer: coarse) {
   .dock {
     --control: var(--control-touch);

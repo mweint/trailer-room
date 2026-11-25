@@ -16,15 +16,15 @@ Every colour, and every shared size, radius, font size and duration, is a token.
 | Group | Token | Value | Use |
 | --- | --- | --- | --- |
 | Page | `--color-bg` | `#0f0f0f` | Page background |
-| | `--color-surface` | `#1b1c1a` | Dialog, inputs |
-| | `--color-surface-raised` | `#22231f` | Menus, popovers |
-| | `--color-surface-hover` | `#252620` | Hover and pressed fill |
-| | `--color-placeholder` | `#2a2b27` | Poster and artwork placeholder |
-| | `--color-border` | `#33342e` | Dividers, quiet outlines |
-| | `--color-border-strong` | `#444540` | Input and dialog outlines |
-| Text | `--color-text` | `#f4f3ed` | Primary |
-| | `--color-text-secondary` | `#c9cac5` | Credits, icon buttons at rest |
-| | `--color-text-muted` | `#a7a8a0` | Metadata, counts |
+| | `--color-surface` | `#1b1b1b` | Dialog, inputs |
+| | `--color-surface-raised` | `#222222` | Menus, popovers |
+| | `--color-hover` | `#ffffff12` | Hover and pressed fill: a white overlay, so it shows equally on the page, a menu or a dialog |
+| | `--color-placeholder` | `#2a2a2a` | Poster and artwork placeholder |
+| | `--color-border` | `#333333` | Dividers, quiet outlines |
+| | `--color-border-strong` | `#444444` | Input and dialog outlines |
+| Text | `--color-text` | `#f2f2f2` | Titles and body text |
+| | `--color-text-secondary` | `#c8c8c8` | Bylines, controls at rest |
+| | `--color-text-muted` | `#a3a3a3` | Metadata, counts |
 | State | `--color-focus` | `#c2d5ff` | Focus ring, 2px, offset 3px |
 | | `--color-warning` | `#deb78e` | Source failures |
 | | `--color-highlight` | `#ffffff` | Hover emphasis: play pill, menu toggle, source name; spinner head on the picture |
@@ -42,11 +42,38 @@ Every colour, and every shared size, radius, font size and duration, is a token.
 | | `--font-brand` | `"DM Serif Text", Georgia, serif` | Masthead wordmark only |
 | | `--text-root` | `16px` | Root size; the page does not scale with the browser's default font size |
 | | `--text-meta` `--text-ui` `--text-body` `--text-section` `--text-title` `--text-brand` | `.8125 .875 1 1.125 1.25 1.5rem` | Six sizes, no others |
-| Motion | `--motion-fast` `--motion-base` | `140ms`, `220ms` | Colour and opacity state change / small movement |
-| | `--ease-out` | `cubic-bezier(.22, 1, .36, 1)` | State transitions. The theater-mode resize in `ui/theater.js` is a scripted animation with its own timings. |
-| | `--motion-layout` `--ease-layout` | `360ms`, `cubic-bezier(.4, 0, .2, 1)` | Anything that changes height or moves other content. Ease-in-out on purpose: a sharp ease-out covers most of the distance in the first two frames and reads as a snap. |
+| | `--measure` | `65ch` | Longest line of body text |
+| Motion | `--motion-press` `--motion-fast` `--motion-base` | `120ms`, `150ms`, `200ms` | Press feedback / colour and hover / small entrances (menus, fades) |
+| | `--motion-layout` `--motion-layout-exit` | `250ms`, `200ms` | Expanding / collapsing. Exits are faster than entrances. |
+| | `--ease-out` | `cubic-bezier(.23, 1, .32, 1)` | Anything entering or leaving, and press feedback. The default. |
+| | `--ease-in-out` | `cubic-bezier(.77, 0, .175, 1)` | Anything moving or changing size on screen: collapse, switch knob, chevron |
+| | `--ease-colour` | `ease` | Colour and hover changes |
 
-Neutrals are warm (slightly olive). The current mix of warm and blue-grey surfaces is drift and is folded into the tokens above.
+**Colour.** Neutrals are pure grey (equal red, green and blue). Hue appears only where it carries meaning: focus (blue) and warning (amber). There is no accent colour until the brand has one; when it does, it is added here as a token and used for the same few things everywhere.
+
+**Motion** follows Emil Kowalski's design-engineering guide (`emilkowalski/skills`, `emil-design-eng`):
+- Entering or exiting uses ease-out, moving on screen uses ease-in-out, and colour uses ease. Ease-in is never used.
+- UI motion stays under 300ms, and an exit is shorter than its entrance.
+- Animate opacity and transform where possible. Height is animated only for show and hide that would otherwise make the page jump (see CSS rules).
+- Under `prefers-reduced-motion: reduce`, movement and scaling stop, but fades and colour changes stay.
+- Buttons scale to `.97` while pressed. Menus open from their trigger at `scale(.95)` plus a fade, and close instantly.
+- The theater-mode resize in `ui/theater.js` is a scripted animation with its own timings.
+
+## Type roles
+
+Every piece of text has one role, and each role has one size, weight and colour. Roles are told apart by size and weight first and colour second. Two neighbouring roles never differ by colour alone.
+
+| Role | Size | Weight | Colour | Examples |
+| --- | --- | --- | --- | --- |
+| Title | `--text-title` | 600 | `--color-text` | Film title |
+| Section | `--text-section` | 600 | `--color-text` | Up next, Film sources, Preferences |
+| Body | `--text-body`, line-height 1.5, at most `--measure` wide | 400 | `--color-text` | Film description |
+| Item | `--text-body` | 600 | `--color-text` | Queue row title |
+| Byline | `--text-ui` | 400 | `--color-text-secondary` | Directed by |
+| Control | `--text-ui` | 400 | inherited | Buttons, labels, menu items |
+| Meta | `--text-meta`, tabular figures | 400 | `--color-text-muted` | Year, runtime, genres, counts |
+
+**Grouping:** text in one group (a title with its byline and meta) is `--space-1` apart. Separate groups (that header, then the body) are `--space-4` apart. The gap between groups is always clearly larger than the gap within one.
 
 ## CSS rules
 
@@ -54,7 +81,7 @@ Neutrals are warm (slightly olive). The current mix of warm and blue-grey surfac
 - State comes from attributes the markup already needs (`[hidden]`, `[disabled]`, `[aria-pressed]`, `[aria-expanded]`, `[aria-busy]`, `[open]`) or a `data-*` attribute on the component root. No state classes invented per case.
 - State attributes set by JavaScript: `data-crt` on `.screen`; `data-controls="hidden"`, `data-hover="local"` and `data-transport` on `.display`; `data-theater` on `.page`; `data-expanded` on `.theater`.
 - No `style="…"` attributes. JavaScript writes only these custom properties: `--fill` (range), `--queue-height` (queue), `--art` (screen artwork), `--beam` `--triad` `--tube-texture` (CRT).
-- **Every show or hide that moves layout animates.** A collapsible block is a one-row grid whose row goes between `1fr` and `0fr`, with a clipped body inside; this animates in every current browser. It runs over `--motion-layout` with `--ease-layout`, and the content fades with it. Neighbours that size from it (the queue) follow frame by frame. Height-to-`auto` transitions (`interpolate-size` on `:root`) are used only where a grid cannot express the end state (the description's three-line clamp) and snap in browsers without them. Closed content also gets `visibility: hidden`, so it leaves the tab order and the accessibility tree. Nothing snaps except under `prefers-reduced-motion: reduce`.
+- **Every show or hide that moves layout animates.** A collapsible block is a one-row grid whose row goes between `1fr` and `0fr`, with a clipped body inside; this animates in every current browser. Its row size uses `--ease-in-out`, over `--motion-layout` when opening and `--motion-layout-exit` when closing, and the content fades with ease-out. Neighbours that size from it (the queue) follow frame by frame. Height-to-`auto` transitions (`interpolate-size` on `:root`) are used only where a grid cannot express the end state (the description's three-line clamp) and snap in browsers without them. Closed content also gets `visibility: hidden`, so it leaves the tab order and the accessibility tree. Under `prefers-reduced-motion: reduce` the size snaps and only the fade remains.
 - **Clipped content fades; it is never cut hard.** Where more content sits past an edge, that edge fades over a mask: the queue's top and bottom (only while rows are hidden there) and the description's last line. Masks use `black` and `transparent` as alpha only; they are not colours.
 - **Labels align to the column; fills bleed.** A button whose label must line up with a column edge (queue rows, the sources toggle, More) uses `.button--flush`: it keeps its padding and takes an equal negative margin, so the hover fill extends past the column instead of the text sitting off it. A scroll box around flush rows pads by the same inset and cancels it with a negative margin, so the fill is not clipped; on the scrollbar side it pads one inset more, so fills never run under a scrollbar. A row with a thumbnail uses the same inset on every side of it, and its corners are concentric with the thumbnail's (outer radius ≈ inner radius + inset).
 - **Queue rows** span the column. Remove (×) sits at the right end, shows on hover or focus and always on touch, and takes the film out of the current round only; Hide movie in the film options is the lasting version.

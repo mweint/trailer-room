@@ -47,12 +47,12 @@ input:focus-visible + .switch {
   outline-offset: 3px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .switch {
-    transition: background-color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
-  }
+.switch {
+  transition: background-color var(--motion-fast) var(--ease-colour), border-color var(--motion-fast) var(--ease-colour);
+}
 
+@media (prefers-reduced-motion: no-preference) {
   .switch::after {
-    transition: transform var(--motion-fast) var(--ease-out);
+    transition: transform var(--motion-base) var(--ease-in-out);
   }
 }
