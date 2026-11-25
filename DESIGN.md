@@ -4,7 +4,7 @@ The contract for everything in `web/`. If code and this file disagree, one of th
 
 ## Principles
 
-- **The picture is the product.** Page chrome is quiet, dark and low-contrast; only the play pill and the focus ring are bright.
+- **The picture is the product.** Page chrome is quiet, dark and low-contrast; only the play pill, the focus ring and selected chips are bright.
 - **One of each thing.** One button, one switch, one select, one menu, one panel heading. A new screen is built from these before anything new is added.
 - **No build step.** Plain HTML, CSS and ES modules served as files. No framework, bundler or npm.
 - **Native first.** `<dialog>`, `<details>`, `<input type=range>`, `<select>` before custom widgets.
@@ -66,12 +66,13 @@ Every piece of text has one role, and each role has one size, weight and colour.
 | Role | Size | Weight | Colour | Examples |
 | --- | --- | --- | --- | --- |
 | Title | `--text-title` | 600 | `--color-text` | Film title |
-| Section | `--text-section` | 600 | `--color-text` | Up next, Film sources, Preferences |
+| Section | `--text-section` | 600 | `--color-text` | Up next, Programming, Preferences |
 | Body | `--text-ui`, line-height 1.375rem, at most `--measure` wide; two lines until More | 400 | `--color-text` | Film description |
 | Item | `--text-ui`, at most two lines then an ellipsis (full text in the tooltip) | 600 | `--color-text` | Queue row title |
 | Byline | `--text-ui` | 400 | `--color-text-secondary` | Directed by |
 | Control | `--text-ui` | 400 | inherited | Buttons, labels, menu items |
-| Meta | `--text-meta`, tabular figures | 400 | `--color-text-muted` | Year, runtime, genres, counts |
+| Meta | `--text-meta`, tabular figures | 400 | `--color-text-muted` | Year, runtime, genres, counts, Letterboxd rating |
+| Group label | `--text-meta` | 600 | `--color-text-muted` | Sources, Decade, Genre, Rating inside Programming |
 
 **Grouping:** text in one group (a title with its byline and meta) is `--space-1` apart. Separate groups (that header, then the body) are `--space-4` apart. The gap between groups is always clearly larger than the gap within one.
 
@@ -81,8 +82,13 @@ Every piece of text has one role, and each role has one size, weight and colour.
 - State comes from attributes the markup already needs (`[hidden]`, `[disabled]`, `[aria-pressed]`, `[aria-expanded]`, `[aria-busy]`, `[open]`) or a `data-*` attribute on the component root. No state classes invented per case.
 - State attributes set by JavaScript: `data-crt` on `.screen`; `data-controls="hidden"`, `data-hover="local"` and `data-transport` on `.display`; `data-theater` on `.page`; `data-expanded` on `.theater`.
 - No `style="…"` attributes. JavaScript writes only these custom properties: `--fill` (range), `--queue-height` (queue), `--art` (screen artwork), `--beam` `--triad` `--tube-texture` (CRT).
-- **Every show or hide that moves layout animates.** A collapsible block is a one-row grid whose row goes between `1fr` and `0fr`, with a clipped body inside; this animates in every current browser. Its row size uses `--ease-in-out`, over `--motion-layout` when opening and `--motion-layout-exit` when closing, and the content fades with ease-out. Neighbours that size from it (the queue) follow frame by frame. Height-to-`auto` transitions (`interpolate-size` on `:root`) are used only where a grid cannot express the end state (the description's three-line clamp) and snap in browsers without them. Closed content also gets `visibility: hidden`, so it leaves the tab order and the accessibility tree. Under `prefers-reduced-motion: reduce` the size snaps and only the fade remains.
-- **Clipped content fades; it is never cut hard.** Where more content sits past an edge, that edge fades over a mask: the queue's top and bottom (only while rows are hidden there) and the description's last line. A label (a title in a list) truncates with an ellipsis instead. Masks use `black` and `transparent` as alpha only; they are not colours.
+- **Motion is applied by kind, never per place.** Every change that moves or shows something is one of three kinds, and each has one implementation:
+  1. *In place.* A region opens, closes, appears or disappears (Programming, the description, Plex setup steps, the no-match note, the extra genre chips). It carries `.collapse` and changes only through `expand(toggle, open)` (the region named by the toggle's `aria-controls`) or `reveal(node, shown)` in `dom.js`. These measure the height before and after the change and animate between the two, with the content fading, using `--ease-in-out` over `--motion-layout` when opening and `--motion-layout-exit` when closing. This works in every browser and for partial states (a preview's first lines). Closed regions get `visibility: hidden`, so they leave the tab order. Neighbours that size from them (the queue) follow frame by frame. No feature writes its own height transition.
+  2. *Overlays.* Menus and the dialog open from `scale(.95)` with a fade and close faster, set in their component CSS.
+  3. *Lists.* When a list's items change, `places()` before and `glide()` after slide the items that stayed to their new places and fade in the new ones (the queue).
+
+  Changes driven by playback or keyboard shortcuts (next film, the picture's cover) are exempt and only cross-fade. Under `prefers-reduced-motion: reduce`, sizes and positions snap and fades remain.
+- **Clipped content fades; it is never cut hard.** Where more content sits past an edge, that edge fades over a mask: the queue's top and bottom (only while rows are hidden there) and a preview collapse's last line. A label (a title in a list) truncates with an ellipsis instead. Masks use `black` and `transparent` as alpha only; they are not colours.
 - **Labels align to the column; fills bleed.** A button whose label must line up with a column edge (queue rows, the sources toggle, More) uses `.button--flush`: it keeps its padding and takes an equal negative margin, so the hover fill extends past the column instead of the text sitting off it. A scroll box around flush rows pads by the same inset and cancels it with a negative margin, so the fill is not clipped; on the scrollbar side it pads one inset more, so fills never run under a scrollbar. A row with a thumbnail uses the same inset on every side of it, and its corners are concentric with the thumbnail's (outer radius ≈ inner radius + inset).
 - **Queue rows** span the column. Remove (×) sits at the right end, shows on hover or focus and always on touch, and takes the film out of the current round only; Hide movie in the film options is the lasting version.
 - One file per component or feature. A feature file may hold several closely tied roots (`screen.css`: `.display`, `.screen`, `.start`; `dock.css`: `.dock`, `.transport`, `.view-tools`, `.wake-surface`). Formatted one declaration per line.
@@ -103,6 +109,8 @@ Primitives (`web/css/components/`), reused everywhere:
 | Panel heading | `.panel-heading` | — |
 | Dialog | `.dialog` | — |
 | Spinner | `.spinner` | on pill, on picture |
+| Collapse | `.collapse` | `--preview` (first lines stay, last fades). Opened and closed only through `expand()` / `reveal()` in `dom.js`. |
+| Chip | `.chip` in `.chips` | Toggle with `aria-pressed`; an Any chip clears the group; less common values open under a +N chip. |
 
 Features (`web/css/features/` and `web/js/ui/`). Each has a CSS file; the module column names the code that owns its DOM:
 
@@ -114,7 +122,7 @@ Features (`web/css/features/` and `web/js/ui/`). Each has a CSS file; the module
 | Dock | `.dock` | `dock.js`, `transport.js` | Auto-hide and view tools; title, timeline, transport buttons, volume |
 | Film info | `.film-info` | `film-info.js` | Title, credit, facts, description (three lines, More), film options menu |
 | Queue | `.queue` | `queue.js` | Up-next list, poster loading as rows scroll into view, list height |
-| Sources | `.sources` | `sources.js` | Source toggles, status and retry, rating filter |
+| Programming | `.programming` | `programming.js` | What goes into the rotation: source rows with status and retry, decade and genre chips, rating filter, live film count, summary while closed, Clear filters when nothing matches |
 | Preferences | `.preferences` | `preferences.js`, `plex.js` | Plex setup, hidden and skipped lists |
 
 `theater.js` (theater mode, fullscreen; styled in `layout.css`) and `shortcuts.js` have no CSS file of their own.
@@ -137,7 +145,7 @@ playback/
   vimeo.js         Vimeo adapter
 ui/
   screen.js  crt.js  dock.js (auto-hide, view tools)  transport.js (title, timeline, buttons, volume)
-  film-info.js  queue.js  sources.js  preferences.js  plex.js
+  film-info.js  queue.js  programming.js  preferences.js  plex.js
   theater.js (theater mode, fullscreen)  shortcuts.js
 ```
 

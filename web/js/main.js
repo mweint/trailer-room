@@ -11,7 +11,7 @@ import * as theater from "./ui/theater.js";
 import * as preferences from "./ui/preferences.js";
 import {initCrt} from "./ui/crt.js";
 import {renderQueue, fitQueuePreview, initQueue} from "./ui/queue.js";
-import {renderSources, initSources} from "./ui/sources.js";
+import {renderProgramming, initProgramming} from "./ui/programming.js";
 import {plexPreferences} from "./ui/plex.js";
 import {initShortcuts} from "./ui/shortcuts.js";
 
@@ -20,7 +20,7 @@ import {initShortcuts} from "./ui/shortcuts.js";
 const view = {
   notice: screen.setNotice,
   renderQueue,
-  renderSources,
+  renderProgramming,
   renderFilm(film, info, clip, playing) {
     const link = letterboxdLink(film, info);
     transport.showFilmControls(link, !!clip, playing);
@@ -96,7 +96,7 @@ initCrt();
 dock.initDock();
 theater.initTheater({showControls: dock.showControls, layoutChanged: fitQueuePreview});
 initQueue();
-initSources(screen.setNotice);
+initProgramming(screen.setNotice);
 preferences.initPreferences();
 initShortcuts({
   viewToolsOpen: dock.viewToolsOpen,
@@ -115,10 +115,10 @@ const plexSetup = plexPreferences(syncCollections);
 onSync({
   plexStatus: plexSetup.status,
   changed: sourcesChanged,
-  unchanged: renderSources,
+  unchanged: renderProgramming,
   notice: screen.setNotice
 });
-renderSources();
+renderProgramming();
 syncCollections();
 if (location.hash === "#plex-setup") {
   history.replaceState(null, "", location.pathname + location.search);

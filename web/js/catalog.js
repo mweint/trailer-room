@@ -32,6 +32,29 @@ export function withinRating(film, maximum, includeUnrated = !maximum) {
   return !maximum || rank <= US_RATINGS.indexOf(maximum);
 }
 
+// Programming filters. An empty choice means any.
+export function decadeOf(film) {
+  return Math.floor(Number(film.year) / 10) * 10;
+}
+
+export function withinDecades(film, decades) {
+  return !decades.length || decades.includes(decadeOf(film));
+}
+
+// A film whose genres are not known yet does not match a genre choice.
+export function withinGenres(genres, chosen) {
+  return !chosen.length || genres.some(genre => chosen.includes(genre));
+}
+
+// Values present in a list of films, most common first (genres) or in order (decades).
+export function tally(values) {
+  const counts = new Map();
+  for (const value of values) {
+    counts.set(value, (counts.get(value) || 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([value]) => value);
+}
+
 export function posterUrls(film) {
   const imdbPoster = film.imdb && "https://images.metahub.space/poster/small/" + film.imdb + "/img";
   let url;

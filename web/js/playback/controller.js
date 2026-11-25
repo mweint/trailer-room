@@ -97,7 +97,7 @@ export function sourcesChanged() {
     current = {...replacement, keys: [...new Set([...current.keys, ...replacement.keys])]};
   }
   rebuild();
-  view.renderSources();
+  view.renderProgramming();
   if (!replacement || !enabled(current) || hidden(current)) {
     advance();
   } else {
@@ -127,7 +127,7 @@ function nothingToPlay() {
   empty(enabledAny ? "No trailers ready" : "Choose a film source", waiting);
   if (!waiting) {
     view.notice(!enabledAny ? "Turn on a film source to build your queue." :
-      (pref("maxRating") ? "Try a higher film rating under Film sources or enable another source." :
+      (pref("maxRating") ? "Try a higher film rating under Programming or enable another source." :
         "Try another source or restore movies and trailers in Preferences."));
   }
 }

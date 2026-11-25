@@ -21,11 +21,6 @@
   --queue-fade: 3rem;
 }
 
-.queue-count {
-  color: var(--color-text-muted);
-  font-size: var(--text-meta);
-  font-variant-numeric: tabular-nums;
-}
 
 /* The padding gives the rows' bleed room inside the scroll box, and the negative margin cancels it.
    The end side keeps one more inset so row fills stop short of the scrollbar, overlay or not. */

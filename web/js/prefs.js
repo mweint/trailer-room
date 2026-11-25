@@ -13,6 +13,8 @@ const prefs = {
   enabled: {criterion: true, a24: true, neon: true, janus: true, ...saved.enabled},
   maxRating: savedRating,
   includeUnrated: typeof saved.includeUnrated === "boolean" ? saved.includeUnrated : !savedRating,
+  decades: Array.isArray(saved.decades) ? saved.decades.filter(Number.isInteger) : [],
+  genres: Array.isArray(saved.genres) ? saved.genres.filter(g => typeof g === "string") : [],
   sourcesCollapsed: !!saved.sourcesCollapsed,
   hidden: saved.hidden || [],
   skipped: saved.skipped || [],

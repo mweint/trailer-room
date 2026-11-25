@@ -6,6 +6,13 @@
   gap: var(--space-3);
 }
 
+/* A count on the right of a heading (Meta role). */
+.panel-count {
+  color: var(--color-text-muted);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
 .panel-title {
   font-size: var(--text-section);
   line-height: 1.5rem;

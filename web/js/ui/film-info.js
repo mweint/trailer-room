@@ -15,6 +15,7 @@ export function showFilmInfo(film, info, clip, link) {
     film.certification,
     info?.runtime,
     info?.genres?.slice(0, 2).join(", "),
+    info?.letterboxd?.rating ? "★ " + info.letterboxd.rating.toFixed(1) : "",
     sourceNames(film)
   ].filter(Boolean).join(" · ");
   $("synopsis").textContent = info?.description || "";

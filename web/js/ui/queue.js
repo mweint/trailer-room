@@ -51,7 +51,7 @@ function queueRow(film) {
   return li;
 }
 
-// Beside the player the list fills the column down to the sources; elsewhere CSS gives it four rows.
+// Beside the player the list fills the column down to Programming; elsewhere CSS gives it four rows.
 export function fitQueuePreview() {
   const list = $("queue");
   const preview = list.parentElement;
@@ -62,7 +62,7 @@ export function fitQueuePreview() {
     return;
   }
   const aside = list.closest("aside");
-  const below = aside.querySelector(".sources").getBoundingClientRect().height +
+  const below = aside.querySelector(".programming").getBoundingClientRect().height +
     parseFloat(getComputedStyle(aside).rowGap) + parseFloat(getComputedStyle(layout).paddingBottom);
   const available = innerHeight - (preview.getBoundingClientRect().top + scrollY) - below;
   preview.style.setProperty("--queue-height", Math.floor(available) + "px");
@@ -116,5 +116,5 @@ export function renderQueue(queue, pending, anyEnabled) {
 export function initQueue() {
   watchPosters();
   window.addEventListener("resize", fitQueuePreview);
-  new ResizeObserver(fitQueuePreview).observe($("queue").closest("main").querySelector(".sources"));
+  new ResizeObserver(fitQueuePreview).observe($("queue").closest("main").querySelector(".programming"));
 }

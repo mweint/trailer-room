@@ -37,7 +37,7 @@ Startup and page visits check the age of each list. A missing or 30-day-old list
 | NEON | The film records embedded in the [NEON catalog](https://www.neonrated.com/films/all). |
 | Janus Films | The [Janus Films list](https://www.janusfilms.com/films/list). |
 
-Matching Wikidata records supply optional film identifiers and U.S. certifications. Film details and trailer IDs are resolved on demand using Cinemeta, A24 and YouTube. Upload resolution and like counts depend on provider availability. The image and repository contain no downloaded movie lists, IMDb bulk datasets or viewing history.
+Matching Wikidata records supply optional film identifiers and U.S. certifications. Film details and trailer IDs are resolved on demand using Cinemeta, A24 and YouTube. The full synopsis and average rating come from Letterboxd, fetched one film at a time only as a film plays or is next in line, at most one page every two seconds. They are cached in `letterboxd.json` and the rating is refreshed after 30 days. Without a Letterboxd match the description comes from Cinemeta, whose shortened ones end on a whole word with "…". For the genre filter, a background pass reads each listed film's genres from Cinemeta, one request every 1.5 seconds, and caches them in `genres.json`. Films without a match are checked again after 30 days. Upload resolution and like counts depend on provider availability. The image and repository contain no downloaded movie lists, IMDb bulk datasets or viewing history.
 
 ## Optional configuration
 
@@ -48,6 +48,5 @@ Set values in Portainer's stack environment or a local, Git-ignored `.env` besid
 | `CATALOG_REFRESH_DAYS` | `30` | Days before a successful list becomes eligible for refresh. |
 | `TRAILER_ROOM_PORT` | `8765` | Published port on the host. |
 | `TRAILER_ROOM_HOSTS` | empty | Comma-separated hostnames for LAN DNS or a reverse proxy. Localhost and private IP addresses already work. |
-| `TMDB_API_KEY` | empty | A free TMDB API key (v3) or read access token (v4). Film descriptions then come from TMDB in full. Without it they come from Cinemeta, which shortens some; those end on a whole word with "…". |
 
 This LAN service has no user authentication. Browser playback requires access to the video provider. A reload during a catalog outage continues to use the saved lists.

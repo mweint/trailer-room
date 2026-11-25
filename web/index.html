@@ -17,13 +17,14 @@
   <link rel="stylesheet" href="/css/components/dialog.css">
   <link rel="stylesheet" href="/css/components/spinner.css">
   <link rel="stylesheet" href="/css/components/collapse.css">
+  <link rel="stylesheet" href="/css/components/chip.css">
   <link rel="stylesheet" href="/css/features/mast.css">
   <link rel="stylesheet" href="/css/features/screen.css">
   <link rel="stylesheet" href="/css/features/crt.css">
   <link rel="stylesheet" href="/css/features/dock.css">
   <link rel="stylesheet" href="/css/features/film-info.css">
   <link rel="stylesheet" href="/css/features/queue.css">
-  <link rel="stylesheet" href="/css/features/sources.css">
+  <link rel="stylesheet" href="/css/features/programming.css">
   <link rel="stylesheet" href="/css/features/preferences.css">
 </head>
 <body>
@@ -122,16 +123,25 @@
       <p id="status" class="status" role="status"></p>
     </section>
     <aside class="sidebar">
-      <section class="queue" aria-busy="true"><div class="panel-heading"><h2 class="panel-title">Up next</h2><span id="remaining" class="queue-count"></span></div>
+      <section class="queue" aria-busy="true"><div class="panel-heading"><h2 class="panel-title">Up next</h2><span id="remaining" class="panel-count"></span></div>
         <div class="queue-preview"><ol id="queue" class="queue-list"></ol><p id="queueEmpty" class="queue-empty"></p></div></section>
-      <section class="sources"><div class="panel-heading"><h2 class="panel-title"><button id="sourcesToggle" class="button button--flush sources-toggle" type="button" aria-expanded="true" aria-controls="sourceOptions">Film sources <svg class="icon icon--sm" aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></button></h2></div>
-        <div id="sourceOptions" class="collapse source-options">
-        <div id="sources" class="source-list"></div>
-        <div class="rating-filter">
-          <label for="maxRating">Maximum U.S. film rating</label>
-          <select id="maxRating" class="select"><option value="">Any rating</option></select>
-          <label class="unrated-option">Include unrated films<input type="checkbox" id="includeUnrated"><span class="switch" aria-hidden="true"></span></label>
-        </div>
+      <section class="programming" aria-labelledby="programmingTitle">
+        <div class="panel-heading"><h2 id="programmingTitle" class="panel-title"><button id="programmingToggle" class="button button--flush programming-toggle" type="button" aria-expanded="true" aria-controls="programmingOptions">Programming <svg class="icon icon--sm" aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></button></h2><span id="programmingCount" class="panel-count"></span></div>
+        <p id="programmingSummary" class="collapse programming-summary" hidden></p>
+        <p id="programmingEmpty" class="collapse programming-empty" hidden>No films match. <button id="clearFilters" class="button button--link" type="button">Clear filters</button></p>
+        <div id="programmingOptions" class="collapse programming-options">
+          <h3 class="programming-label">Sources</h3>
+          <div id="sources" class="source-list"></div>
+          <h3 class="programming-label" id="decadeLabel">Decade</h3>
+          <div id="decades" class="chips" role="group" aria-labelledby="decadeLabel"></div>
+          <h3 class="programming-label" id="genreLabel">Genre</h3>
+          <div id="genres" class="chips" role="group" aria-labelledby="genreLabel"></div>
+          <h3 class="programming-label">Rating</h3>
+          <div class="rating-filter">
+            <label for="maxRating">Up to U.S. rating</label>
+            <select id="maxRating" class="select"><option value="">Any rating</option></select>
+            <label class="unrated-option">Include unrated films<input type="checkbox" id="includeUnrated"><span class="switch" aria-hidden="true"></span></label>
+          </div>
         </div>
       </section>
     </aside>

@@ -1,6 +1,6 @@
 // The loaded library: source catalogs, merged films, source status, film detail cache and polling. No DOM.
 import {fetchCollections, fetchFilm} from "./api.js";
-import {SOURCES, addSource, removeSource, mergeSources, withinRating} from "./catalog.js";
+import {SOURCES, addSource, removeSource, mergeSources, withinRating, withinDecades, withinGenres} from "./catalog.js";
 import {pref, sourceEnabled, enableSourceByDefault} from "./prefs.js";
 
 const catalogs = {};
@@ -8,6 +8,7 @@ const details = new Map();
 const loaded = new Set();
 let films = [];
 let sourceStatus = {};
+let genres = {};
 let pollTimer;
 let syncVersion = 0;
 let hooks;
@@ -52,12 +53,19 @@ export function detail(film) {
   return details.get(film.key);
 }
 
-export function fitsRating(film) {
-  return withinRating(film, pref("maxRating"), pref("includeUnrated"));
+// Genres arrive from the server's background pass, keyed by film key; films without one yet have none.
+export function genresOf(film) {
+  return genres[film.id] || genres[film.key] || [];
+}
+
+// The programming filters other than sources: rating, decade and genre.
+export function fitsFilters(film) {
+  return withinRating(film, pref("maxRating"), pref("includeUnrated")) &&
+    withinDecades(film, pref("decades")) && withinGenres(genresOf(film), pref("genres"));
 }
 
 export function enabled(film) {
-  return film.sources.some(s => sourceEnabled(s)) && fitsRating(film);
+  return film.sources.some(s => sourceEnabled(s)) && fitsFilters(film);
 }
 
 export function hidden(film) {
@@ -72,7 +80,10 @@ export async function syncCollections(force = false) {
     if (version !== syncVersion) {
       return;
     }
-    const changed = force || JSON.stringify(sourceStatus) !== JSON.stringify(data.sources);
+    const genreCount = Object.keys(data.genres || {}).length;
+    const changed = force || JSON.stringify(sourceStatus) !== JSON.stringify(data.sources) ||
+      genreCount !== Object.keys(genres).length;
+    genres = data.genres || {};
     if (data.sources.plex) {
       addSource("plex", {
         name: "Plex · " + data.sources.plex.name,

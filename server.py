@@ -3,7 +3,9 @@
 import argparse
 import functools
 import hashlib
+import html
 import ipaddress
+import logging
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http.cookies import SimpleCookie, CookieError
 import json
@@ -11,6 +13,7 @@ import mimetypes
 import os
 from pathlib import Path
 import re
+from threading import Lock, Thread
 import time
 import unicodedata
 from urllib.error import HTTPError, URLError
@@ -23,6 +26,9 @@ from trailer_selection import rank_trailers
 
 ROOT = Path(__file__).resolve().parent
 CINEMETA = "https://v3-cinemeta.strem.io"
+RECHECK = 30 * 86400  # Ratings drift and missing films get added, but slowly.
+LETTERBOXD_GAP = 2.0
+CINEMETA_GAP = 1.5
 YOUTUBE = re.compile(r"[A-Za-z0-9_-]{11}\Z")
 IMDB = re.compile(r"tt\d{7,10}\Z")
 movies = {}
@@ -47,22 +53,109 @@ def read_public(url, headers=None):
         return json.load(r)
 
 
-def tmdb_overview(imdb):
-    """Full synopsis from TMDB when TMDB_API_KEY is set. Accepts a v3 API key or a v4 read access token."""
-    key = os.getenv("TMDB_API_KEY", "").strip()
-    if not key or not imdb:
-        return ""
-    url = "https://api.themoviedb.org/3/find/" + quote(imdb, safe="") + "?external_source=imdb_id"
-    headers = {}
-    if key.startswith("eyJ"):
-        headers["Authorization"] = "Bearer " + key
-    else:
-        url += "&api_key=" + quote(key, safe="")
+class JsonCache:
+    """Per-film entries in one JSON file: loaded once, replaced atomically so a crash never leaves half a file."""
+
+    def __init__(self, path):
+        self.path = Path(path)
+        self.lock = Lock()
+        self.dirty = False
+        try:
+            entries = json.loads(self.path.read_text("utf-8"))
+        except (OSError, ValueError):
+            entries = {}
+        self.entries = entries if isinstance(entries, dict) else {}
+
+    def get(self, key):
+        with self.lock:
+            return self.entries.get(key)
+
+    def put(self, key, value):
+        with self.lock:
+            self.entries[key] = value
+            self.dirty = True
+
+    def items(self):
+        with self.lock:
+            return list(self.entries.items())
+
+    def save(self):
+        with self.lock:
+            if not self.dirty:
+                return
+            try:
+                self.path.parent.mkdir(parents=True, exist_ok=True)
+                temp = self.path.with_suffix(".tmp")
+                temp.write_text(json.dumps(self.entries, ensure_ascii=False), encoding="utf-8")
+                temp.replace(self.path)
+                self.dirty = False
+            except OSError as exc:
+                logging.warning("%s write failed: %s", self.path.name, exc)
+
+
+def stale(stamp, now, age=RECHECK):
+    return not isinstance(stamp, (int, float)) or now - stamp >= age
+
+
+def letterboxd_page(text):
+    """Synopsis and average rating from the meta tags of a Letterboxd film page."""
+    tags = {}
+    for tag in re.findall(r"<meta\s[^>]*>", text):
+        name = re.search(r'\s(?:name|property)="([^"]+)"', tag)
+        content = re.search(r'\scontent="([^"]*)"', tag)
+        if name and content:
+            tags.setdefault(name[1], html.unescape(content[1]).strip())
+    rating = None
+    # The rating rides in a labelled twitter:dataN slot; match the label rather than trusting the slot number.
+    for slot in "1234":
+        if tags.get("twitter:label" + slot, "").casefold() == "average rating":
+            value = re.match(r"(\d+(?:\.\d+)?) out of 5", tags.get("twitter:data" + slot, ""))
+            rating = float(value[1]) if value else None
+    return {"description": tags.get("description", ""), "rating": rating, "url": tags.get("og:url", "")}
+
+
+def letterboxd_fetch(imdb):
+    """One page fetch; None means a network failure, which is not cached."""
+    request = Request("https://letterboxd.com/imdb/" + imdb + "/", headers={"User-Agent": "TrailerRoom/1.0"})
     try:
-        results = read_public(url, headers).get("movie_results") or []
+        with urlopen(request, timeout=9) as r:
+            final = r.geturl()
+            page = r.read().decode("utf-8", "replace")
+    except HTTPError as err:
+        return {"description": "", "rating": None, "url": ""} if err.code == 404 else None
     except (OSError, ValueError):
-        return ""
-    return (results[0].get("overview") or "").strip() if results else ""
+        return None
+    # An unknown id answers 200 on /imdb/ itself; only a redirect to /film/ is a match.
+    if "/film/" not in urlsplit(final).path:
+        return {"description": "", "rating": None, "url": ""}
+    found = letterboxd_page(page)
+    return {**found, "url": found["url"] or final}
+
+
+def letterboxd(imdb):
+    """Cached Letterboxd details, fetched one film at a time and never faster than one page per LETTERBOXD_GAP."""
+    if not IMDB.fullmatch(imdb or ""):
+        return None
+    entry = letterboxd_cache.get(imdb)
+    if entry and not stale(entry.get("fetched"), time.time()):
+        return entry
+    with letterboxd_lock:
+        # Another request may have fetched this film while this one waited.
+        entry = letterboxd_cache.get(imdb)
+        if entry and not stale(entry.get("fetched"), time.time()):
+            return entry
+        time.sleep(max(0.0, letterboxd_last[0] + LETTERBOXD_GAP - time.monotonic()))
+        found = letterboxd_fetch(imdb)
+        letterboxd_last[0] = time.monotonic()
+        if found is None:
+            return entry
+        old = entry or {}
+        # Refetches exist for the rating; a synopsis once found is kept.
+        entry = {"description": found["description"] or old.get("description", ""), "rating": found["rating"],
+                 "url": found["url"] or old.get("url", ""), "fetched": int(time.time())}
+        letterboxd_cache.put(imdb, entry)
+        letterboxd_cache.save()
+        return entry
 
 
 def whole_words(text):
@@ -115,6 +208,8 @@ def detail_cached(key, youtube, slug, period):
         outage = err.code != 404
     except (OSError, ValueError):
         outage = True
+    if not outage:
+        record_genres(key, meta.get("genres"))
     for entry in meta.get("trailers") or []:
         if str(entry.get("type", "")).lower() not in ("trailer", "teaser"):
             continue
@@ -136,11 +231,65 @@ def detail_cached(key, youtube, slug, period):
     videos = rank_trailers(videos, row, meta, period)
     if outage and not videos:
         raise URLError("Trailer metadata is temporarily unavailable")
+    boxd = letterboxd(imdb) or {}
     return {"imdb": imdb, "videos": videos, "art": meta.get("background") or "",
             "directors": meta.get("director") or [],
-            "description": tmdb_overview(imdb) or whole_words(meta.get("description")),
+            "description": boxd.get("description") or whole_words(meta.get("description")),
             "genres": meta.get("genres") or [], "runtime": meta.get("runtime") or "",
-            "rating": meta.get("imdbRating") or row.get("rating")}
+            "rating": meta.get("imdbRating") or row.get("rating"),
+            "letterboxd": {"rating": boxd.get("rating"), "url": boxd.get("url") or ""}}
+
+
+def record_genres(key, genres):
+    genres = [g for g in genres or [] if isinstance(g, str) and g]
+    genre_cache.put(key, {"genres": genres, "checked": int(time.time())})
+
+
+def genres_pending(key, now):
+    entry = genre_cache.get(key)
+    # Found genres do not change; an empty answer may be a film Cinemeta adds later.
+    return not isinstance(entry, dict) or (not entry.get("genres") and stale(entry.get("checked"), now))
+
+
+def film_genres():
+    return {key: entry["genres"] for key, entry in genre_cache.items()
+            if key in movies and isinstance(entry, dict) and entry.get("genres")}
+
+
+def genre_pass():
+    """Fill in Cinemeta genres for every listed film, one request per CINEMETA_GAP, for the genre filter."""
+    failed = {}  # key -> retry time, so a film that keeps erroring cannot hold up the rest
+    while True:
+        now = time.time()
+        pending = [k for k in list(movies) if failed.get(k, 0) <= now and genres_pending(k, now)]
+        if not pending:
+            genre_cache.save()
+            time.sleep(60)
+            continue
+        for done, key in enumerate(pending, 1):
+            if not genres_pending(key, time.time()):
+                continue  # A play filled it in meanwhile.
+            row = movies[key]
+            try:
+                imdb = row.get("imdb") if IMDB.fullmatch(row.get("imdb") or "") else ""
+                if not imdb:
+                    time.sleep(CINEMETA_GAP)
+                    imdb = find_imdb(row)
+                meta = {}
+                if imdb:
+                    time.sleep(CINEMETA_GAP)
+                    meta = read_public(CINEMETA + "/meta/movie/" + imdb + ".json").get("meta") or {}
+                record_genres(key, meta.get("genres"))
+            except HTTPError as err:
+                if err.code == 404:
+                    record_genres(key, [])
+                else:
+                    failed[key] = time.time() + 3600
+            except (OSError, ValueError, KeyError, TypeError, AttributeError):
+                failed[key] = time.time() + 3600
+            if done % 25 == 0:
+                genre_cache.save()
+        genre_cache.save()
 
 
 def allowed_host(header, port, lan):
@@ -237,7 +386,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.data({"error": "Use the local player address."}, 403)
         path = urlsplit(self.path).path
         if path == "/api/collections":
-            return self.data(plex.include(collections.snapshot()))
+            return self.data({**plex.include(collections.snapshot()), "genres": film_genres()})
         if path.startswith("/api/film/"):
             key = path.rsplit("/", 1)[1]
             if key in movies:
@@ -258,6 +407,10 @@ class Handler(BaseHTTPRequestHandler):
 
 collections = CatalogStore(Path(os.environ.get("TRAILER_ROOM_DATA", ROOT / "data")), register)
 plex = PlexSource(collections.directory, register)
+letterboxd_cache = JsonCache(collections.directory / "letterboxd.json")
+letterboxd_lock = Lock()
+letterboxd_last = [0.0]  # monotonic time of the last Letterboxd request
+genre_cache = JsonCache(collections.directory / "genres.json")
 
 
 if __name__ == "__main__":
@@ -282,5 +435,6 @@ if __name__ == "__main__":
     if args.open:
         webbrowser.open(address)
     collections.start()
+    Thread(target=genre_pass, daemon=True).start()
     plex.refresh()
     server.serve_forever()

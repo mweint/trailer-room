@@ -1,0 +1,66 @@
+/* Chip: a small toggle in a wrapping group, for choosing several values from a short set.
+   Selected is aria-pressed=true and reads as a filled pill, the convention for filter chips. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* A group's less common chips sit in a collapse below the first row, opened by a "+N" chip. */
+.chips-more {
+  flex-basis: 100%;
+}
+
+.chips-more > .chips {
+  padding-top: var(--space-2);
+}
+
+.chip {
+  --chip-height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--chip-height);
+  padding: 0 var(--space-3);
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease-colour),
+    border-color var(--motion-fast) var(--ease-colour),
+    color var(--motion-fast) var(--ease-colour);
+}
+
+.chip:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.chip[aria-pressed=true] {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-bg);
+}
+
+@media (pointer: coarse) {
+  .chip {
+    --chip-height: var(--control);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chip {
+    transition:
+      background-color var(--motion-fast) var(--ease-colour),
+      border-color var(--motion-fast) var(--ease-colour),
+      color var(--motion-fast) var(--ease-colour),
+      transform var(--motion-press) var(--ease-out);
+  }
+
+  .chip:active {
+    transform: scale(.97);
+  }
+}
