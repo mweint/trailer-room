@@ -68,6 +68,46 @@ export function plexPreferences(sync) {
     }
   }
 
+  // Signed in: choose any server. From the connecting browser without sign-in: the connected server only.
+  function signedIn(yes) {
+    $("plexServerField").hidden = !yes;
+    $("plexCurrent").hidden = yes;
+  }
+
+  function offer(entries) {
+    const connected = state && (flow ? server.selectedOptions[0]?.text === state.server : true) ? state.libraries : [];
+    libraryChoices(libraries, entries, connected, () => {
+      save.disabled = !chosen(libraries).length;
+    });
+    save.disabled = !chosen(libraries).length;
+    message.textContent = entries.length ? "" : "This server has no accessible film libraries.";
+  }
+
+  // Change: the browser that connected Plex lists the server's libraries straight away; anywhere else signs in.
+  async function change() {
+    if (busy) {
+      return;
+    }
+    if (!state) {
+      return signIn();
+    }
+    message.textContent = "Finding libraries…";
+    try {
+      const result = await call("manage");
+      if (result.signInRequired) {
+        return signIn();
+      }
+      flow = null;
+      $("plexCurrentName").textContent = result.server;
+      signedIn(false);
+      offer(result.libraries);
+      reveal(picker, true);
+    } catch (error) {
+      message.textContent = error.message;
+    }
+  }
+  $("plexOtherServer").onclick = () => signIn();
+
   async function removed() {
     sessionStorage.removeItem(flowKey);
     reveal(picker, false);
@@ -91,6 +131,7 @@ export function plexPreferences(sync) {
       }
       message.textContent = "Finding your servers…";
       const result = await call("servers", {flow});
+      signedIn(true);
       options(server, "Choose a server", result.servers);
       libraries.replaceChildren();
       reveal(picker, true);
@@ -114,13 +155,7 @@ export function plexPreferences(sync) {
       if (server.value !== selected) {
         return;
       }
-      // Libraries already connected start switched on when this is the same server.
-      const same = state && server.selectedOptions[0]?.text === state.server;
-      libraryChoices(libraries, result.libraries, same ? state.libraries : [], () => {
-        save.disabled = !chosen(libraries).length;
-      });
-      save.disabled = !chosen(libraries).length;
-      message.textContent = result.libraries.length ? "" : "This server has no accessible film libraries.";
+      offer(result.libraries);
     } catch (error) {
       if (server.value === selected) {
         message.textContent = error.message;
@@ -135,12 +170,16 @@ export function plexPreferences(sync) {
   };
 
   async function connect() {
-    const body = {flow, server: server.value, library: chosen(libraries).join(",")};
+    const library = chosen(libraries).join(",");
+    const body = flow ? {flow, server: server.value, library} : {library};
     server.disabled = save.disabled = $("plexCancel").disabled = true;
     busy = true;
     message.textContent = "Importing films…";
     try {
-      await call("connect", body);
+      const result = await call("connect", body);
+      if (result.signInRequired) {
+        return await signIn();
+      }
       sessionStorage.removeItem(flowKey);
       reveal(picker, false);
       await sync(true);
@@ -179,5 +218,5 @@ export function plexPreferences(sync) {
       busy = false;
     }
   }
-  return {status, resume, start: () => signIn(), remove};
+  return {status, resume, start: change, remove};
 }

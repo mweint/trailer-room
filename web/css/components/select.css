@@ -1,9 +1,10 @@
-/* Select: the one native select. The browser's own arrow sits wherever each browser puts it, flush against
+/* Select: the one native select, with control text (Control role, --text-ui). Features size it but never restyle it. The browser's own arrow sits wherever each browser puts it, flush against
    the right padding, so it is replaced by a chevron drawn with the same inset on both sides as the text has
    on the left. The chevron is SVG data in the muted text grey. */
 .select {
   --select-chevron: var(--icon-sm);
   min-height: var(--control);
+  font-size: var(--text-ui);
   padding-inline: var(--space-3) calc(var(--space-3) + var(--select-chevron) + var(--space-1));
   appearance: none;
   background-color: var(--color-surface);

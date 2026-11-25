@@ -13,7 +13,7 @@ const LISTS = [
 
 function restoreLine(field, item) {
   const line = el("div", "restore");
-  const btn = el("button", "button button--link", "Restore");
+  const btn = el("button", "button button--text", "Restore");
   const details = el("div", "restore-details");
   const title = el("div", "restore-title", item.title);
   if (item.year) {

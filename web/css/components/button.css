@@ -48,18 +48,44 @@
   border-radius: var(--radius-pill);
 }
 
-.button--outline {
-  min-height: var(--control-touch);
-  border: 1px solid var(--color-border);
+/* Primary: the one action that completes a form (Save). Filled in the bright text colour, like a selected chip. */
+.button--primary {
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-weight: 600;
 }
 
-.button--link {
-  --button-link-height: 1.8rem;
+.button--primary:hover:enabled {
+  background: var(--color-highlight);
+}
+
+/* Text: an action that stands on its own (Change, Remove, Restore, More, Cancel). No underline; dimmer text
+   that brightens, with the usual hover fill. */
+.button--text {
+  --button-text-height: 1.75rem;
   --button-inset: var(--space-2);
-  min-height: var(--button-link-height);
+  min-height: var(--button-text-height);
   padding-block: 0;
+  color: var(--color-text-secondary);
+}
+
+.button--text:hover:enabled {
+  color: var(--color-text);
+}
+
+/* Inline: an action inside a sentence (Retry, Clear filters). It reads as a link, underlined, with no box. */
+.button--inline {
+  display: inline;
+  min-height: 0;
+  padding: 0;
   color: inherit;
   text-decoration: underline;
+  text-underline-offset: .16em;
+}
+
+.button--inline:hover:enabled {
+  background: transparent;
+  color: var(--color-text);
 }
 
 /* Flush: the label lines up with the column edge and the padding and hover fill bleed outside it. */

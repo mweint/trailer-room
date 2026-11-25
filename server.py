@@ -373,7 +373,7 @@ class Handler(BaseHTTPRequestHandler):
             if not origin:
                 return self.data({"error": "Open Preferences to configure Plex."}, 403)
             action = self.path.removeprefix("/api/plex/")
-            if action not in ("begin", "servers", "libraries", "connect", "disconnect"):
+            if action not in ("begin", "manage", "servers", "libraries", "connect", "disconnect"):
                 return self.data({"error": "Not found"}, 404)
             try:
                 length = int(self.headers.get("Content-Length", "0"))

@@ -20,7 +20,7 @@ function failureNote(key, state) {
   note.append(document.createTextNode(
     (state.updated ? "Stale list from " + date(state.updated) : "No saved list") +
     ". Failed " + date(state.attempted) + ": " + state.error + " "));
-  const retry = el("button", "button button--link", state.refreshing ? "Retrying…" : "Retry");
+  const retry = el("button", "button button--inline", state.refreshing ? "Retrying…" : "Retry");
   retry.disabled = state.refreshing;
   retry.onclick = async () => {
     retry.disabled = true;
@@ -65,7 +65,7 @@ function sourceRow(key, {name, logo: file}, focused) {
 }
 
 function link(text, action) {
-  const button = el("button", "button button--link", text);
+  const button = el("button", "button button--text", text);
   button.type = "button";
   button.onclick = action;
   return button;

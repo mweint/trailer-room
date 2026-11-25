@@ -171,13 +171,46 @@ class PlexSource:
         self.saved, self.rows, self.running = None, {}, None
         self.flows.clear()
 
+    def owns(self, device_key):
+        # Caller holds self.lock. The browser that connected Plex keeps a key whose hash is saved.
+        digest = hashlib.sha256(device_key.encode()).hexdigest()
+        return bool(device_key) and secrets.compare_digest(digest, self.saved.get("device_hash", ""))
+
+    def manage(self, action, body, device_key):
+        """Change the connected server's libraries from the browser that connected it, without a new sign-in.
+        "manage" lists the server's film libraries; "connect" saves a new choice. Other browsers sign in."""
+        with self.lock:
+            data = self.saved
+            if not data or not self.owns(device_key):
+                return {"signInRequired": True}
+        _, libraries = sections(data["server"])
+        if action == "manage":
+            return {"server": data["server"]["name"], "libraries": choices(libraries)}
+        keys = list(dict.fromkeys(k for k in body.get("library", "").split(",") if k))
+        if not keys or any(key not in libraries for key in keys):
+            raise PlexError("Choose at least one library from the list.")
+        now = int(time.time())
+        imported = []
+        for key in keys:
+            library, rows = film_rows(data["server"], key, libraries[key])
+            imported.append({"key": key, "library": library, "rows": rows, "updated": now, "attempted": now,
+                             "error": ""})
+        with self.lock:
+            if self.saved is not data:
+                raise PlexError("The Plex connection changed. Start again.")
+            self.write(dict(data, libraries=imported))
+            self.rows = self.registered(self.saved)
+            self.running = None
+        return {}
+
     def action(self, action, body, device_key=""):
+        if action in ("manage", "connect") and not body.get("flow"):
+            return self.manage(action, body, device_key)
         if action == "disconnect" and not body.get("flow"):
             with self.lock:
                 if not self.saved:
                     return {}
-                digest = hashlib.sha256(device_key.encode()).hexdigest()
-                if not device_key or not secrets.compare_digest(digest, self.saved.get("device_hash", "")):
+                if not self.owns(device_key):
                     return {"signInRequired": True}
                 self.remove(body.get("connection"))
                 return {}

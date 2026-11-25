@@ -166,6 +166,21 @@ class PlexTests(unittest.TestCase):
         self.assertEqual([snapshot["sources"][s]["name"] for s in ("plex-7", "plex-8")], ["Festival picks", "Family"])
         self.assertEqual(len(snapshot["catalogs"]["plex-7"]), 1)
 
+    def test_connecting_browser_changes_libraries_without_signing_in(self):
+        flow = dict(self.sign_in(), server="home")
+        self.source.action("libraries", flow)
+        key = self.source.action("connect", dict(flow, library="7"))["device_key"]
+        self.assertTrue(self.source.action("manage", {}, "wrong")["signInRequired"])
+        self.assertTrue(self.source.action("connect", {"library": "8"}, "")["signInRequired"])
+        with patch("plex.discover", side_effect=AssertionError("No sign-in needed")):
+            listed = self.source.action("manage", {}, key)
+            self.assertEqual(listed["server"], "Home Cinema")
+            self.assertEqual([c["name"] for c in listed["libraries"]], ["Family", "Festival picks"])
+            with self.assertRaises(plex.PlexError):
+                self.source.action("connect", {"library": "9"}, key)
+            self.assertEqual(self.source.action("connect", {"library": "7,8"}, key), {})
+        self.assertEqual(self.snapshot()["plex"]["libraries"], ["plex-7", "plex-8"])
+
     def test_single_library_file_from_before_is_read(self):
         old = {"owner": "test-user", "server": {"name": "Home Cinema", "client": "c", "urls": [], "token": "t"},
                "key": "7", "library": {"name": "Festival picks", "uuid": "seven"}, "connection": "abc",
