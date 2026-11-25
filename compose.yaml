@@ -8,6 +8,7 @@ services:
       PGID: "${PGID:-1000}"
       CATALOG_REFRESH_DAYS: "${CATALOG_REFRESH_DAYS:-30}"
       TRAILER_ROOM_HOSTS: "${TRAILER_ROOM_HOSTS:-}"
+      TMDB_API_KEY: "${TMDB_API_KEY:-}"
     volumes:
       - /data/appdata/trailer-room:/data
     restart: unless-stopped

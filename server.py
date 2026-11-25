@@ -42,9 +42,43 @@ def register(row):
     return record
 
 
-def read_public(url):
-    with urlopen(Request(url, headers={"User-Agent": "TrailerRoom/1.0"}), timeout=9) as r:
+def read_public(url, headers=None):
+    with urlopen(Request(url, headers={"User-Agent": "TrailerRoom/1.0", **(headers or {})}), timeout=9) as r:
         return json.load(r)
+
+
+def tmdb_overview(imdb):
+    """Full synopsis from TMDB when TMDB_API_KEY is set. Accepts a v3 API key or a v4 read access token."""
+    key = os.getenv("TMDB_API_KEY", "").strip()
+    if not key or not imdb:
+        return ""
+    url = "https://api.themoviedb.org/3/find/" + quote(imdb, safe="") + "?external_source=imdb_id"
+    headers = {}
+    if key.startswith("eyJ"):
+        headers["Authorization"] = "Bearer " + key
+    else:
+        url += "&api_key=" + quote(key, safe="")
+    try:
+        results = read_public(url, headers).get("movie_results") or []
+    except (OSError, ValueError):
+        return ""
+    return (results[0].get("overview") or "").strip() if results else ""
+
+
+def whole_words(text):
+    """Cinemeta cuts some descriptions mid-word and adds '...'; end them on a whole word instead."""
+    text = (text or "").strip()
+    if not text.endswith(("...", "…")):
+        return text
+    body = text.rstrip(".…")
+    if not body.strip():
+        return ""
+    # A space before the dots means the last word is whole; otherwise it was cut and is dropped.
+    if body[-1:].isspace() or " " not in body:
+        body = body.rstrip()
+    else:
+        body = body.rsplit(" ", 1)[0]
+    return body.rstrip(" ,;:-–—") + "…"
 
 
 def find_imdb(row):
@@ -103,7 +137,8 @@ def detail_cached(key, youtube, slug, period):
     if outage and not videos:
         raise URLError("Trailer metadata is temporarily unavailable")
     return {"imdb": imdb, "videos": videos, "art": meta.get("background") or "",
-            "directors": meta.get("director") or [], "description": meta.get("description") or "",
+            "directors": meta.get("director") or [],
+            "description": tmdb_overview(imdb) or whole_words(meta.get("description")),
             "genres": meta.get("genres") or [], "runtime": meta.get("runtime") or "",
             "rating": meta.get("imdbRating") or row.get("rating")}
 
