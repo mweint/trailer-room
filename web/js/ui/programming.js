@@ -1,5 +1,5 @@
 // Programming: what goes into the rotation. Source switches with counts, failure status and retry;
-// decade and genre chips; the rating filter; the live film count, the collapsed summary and Clear filters.
+// decade and genre chips; the rating filter; the live film count, the summary under Up next and Clear filters.
 import {$, el, expand, reveal} from "../dom.js";
 import {refreshSource} from "../api.js";
 import {SOURCES, US_RATINGS, decadeOf, tally} from "../catalog.js";
@@ -148,7 +148,7 @@ function filtersActive() {
   return pref("decades").length || pref("genres").length || pref("maxRating") || !pref("includeUnrated");
 }
 
-// One line that says what is applied, shown while the panel is closed.
+// One line under Up next that says what is applied; it opens the Programming sheet.
 function summary() {
   const on = Object.entries(SOURCES).filter(([key]) => sourceEnabled(key));
   const sources = on.length === Object.keys(SOURCES).length ? "All sources" :
@@ -172,15 +172,6 @@ export function renderProgramming() {
   $("programmingCount").textContent = loaded ? count.toLocaleString() + (count === 1 ? " film" : " films") : "";
   $("programmingSummary").textContent = summary();
   reveal($("programmingEmpty"), loaded && !count && !!filtersActive());
-}
-
-function showOptions(animate) {
-  expand($("programmingToggle"), !pref("sourcesCollapsed"), animate);
-  if (animate) {
-    reveal($("programmingSummary"), pref("sourcesCollapsed"));
-  } else {
-    $("programmingSummary").hidden = !pref("sourcesCollapsed");
-  }
 }
 
 // notice(message) writes the status line under the player.
@@ -209,11 +200,5 @@ export function initProgramming(showNotice) {
     $("maxRating").value = "";
     $("includeUnrated").checked = true;
     changed();
-  };
-  showOptions(false);
-  $("programmingToggle").onclick = () => {
-    setPref("sourcesCollapsed", !pref("sourcesCollapsed"));
-    showOptions(true);
-    savePrefs();
   };
 }

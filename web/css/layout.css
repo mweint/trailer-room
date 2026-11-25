@@ -42,7 +42,6 @@ body {
 }
 
 [data-theater] .sidebar {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   border-top: 1px solid var(--color-border);
   padding-top: var(--space-4);
 }
@@ -82,7 +81,6 @@ body:has(.theater[data-expanded]) {
   }
 
   .sidebar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     border-top: 1px solid var(--color-border);
     padding-top: var(--space-4);
   }
@@ -91,10 +89,5 @@ body:has(.theater[data-expanded]) {
 @media (max-width: 36rem) {
   body {
     --gutter: var(--space-4);
-  }
-
-  .sidebar,
-  [data-theater] .sidebar {
-    grid-template-columns: minmax(0, 1fr);
   }
 }

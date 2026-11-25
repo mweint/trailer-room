@@ -1,4 +1,6 @@
-/* Dialog: the native modal <dialog>. */
+/* Dialog: the native modal <dialog>, centred, or as a sheet (--sheet) docked to the right edge at full height.
+   Opening and closing motion runs in dom.js openDialog() and closeDialog(); this file holds only the states.
+   The heading row ends with an icon close button. */
 .dialog {
   --dialog-width: 27.5rem;
   width: min(var(--dialog-width), 92vw);
@@ -10,60 +12,28 @@
   border-radius: var(--radius-lg);
 }
 
+.dialog--sheet {
+  --dialog-width: 26rem;
+  height: 100dvh;
+  max-height: none;
+  inset: 0 0 0 auto;
+  margin: 0;
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+  overscroll-behavior: contain;
+}
+
 .dialog::backdrop {
   background: color-mix(in srgb, var(--color-bg) 60%, transparent);
 }
 
-/* Overlay motion: opens from 95% scale with a fade, closes faster. Under reduced motion only the fade stays.
-   display and overlay transition discretely so the closing fade is seen before the dialog leaves the top layer. */
-.dialog,
-.dialog::backdrop {
-  opacity: 0;
-  transition:
-    opacity var(--motion-fast) var(--ease-out),
-    display var(--motion-fast) allow-discrete,
-    overlay var(--motion-fast) allow-discrete;
+.dialog > .panel-heading {
+  margin-bottom: var(--space-2);
 }
 
-.dialog[open],
-.dialog[open]::backdrop {
-  opacity: 1;
-  transition-duration: var(--motion-base);
-}
-
-@starting-style {
-  .dialog[open],
-  .dialog[open]::backdrop {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .dialog {
-    transform: scale(.95);
-    transition:
-      opacity var(--motion-fast) var(--ease-out),
-      transform var(--motion-fast) var(--ease-out),
-      display var(--motion-fast) allow-discrete,
-      overlay var(--motion-fast) allow-discrete;
-  }
-
-  .dialog[open] {
-    transform: none;
-  }
-
-  @starting-style {
-    .dialog[open] {
-      transform: scale(.95);
-    }
-  }
-}
-
-.dialog h3 {
-  display: block;
-  margin: var(--space-6) 0 var(--space-2);
-  font-size: var(--text-ui);
-  font-weight: 600;
+.dialog-close {
+  margin-inline: auto calc(-1 * var(--space-2));
+  color: var(--color-text-secondary);
 }
 
 .dialog p {

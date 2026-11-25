@@ -1,5 +1,6 @@
-// Preferences dialog: open and close, and the hidden-movie and skipped-trailer lists with Restore.
-import {$, el} from "../dom.js";
+// The Programming sheet (opened from the masthead and the Up next summary): open and close, and the
+// hidden-movie and skipped-trailer lists with Restore. Its filters are rendered by programming.js.
+import {$, el, openDialog, closeDialog, dismissible} from "../dom.js";
 import {pref, removeFromList, savePrefs} from "../prefs.js";
 import {sourcesChanged} from "../playback/controller.js";
 import {forgetUnavailable} from "../playback/rotation.js";
@@ -11,7 +12,7 @@ const LISTS = [
 
 function restoreLine(field, item) {
   const line = el("div", "restore");
-  const btn = el("button", "button", "Restore");
+  const btn = el("button", "button button--link", "Restore");
   const details = el("div", "restore-details");
   const title = el("div", "restore-title", item.title);
   if (item.year) {
@@ -59,9 +60,12 @@ export function clickPreferences() {
 }
 
 export function initPreferences() {
-  $("preferences").onclick = () => {
+  const open = () => {
     renderLists();
-    $("settings").showModal();
+    openDialog($("settings"));
   };
-  $("close").onclick = () => $("settings").close();
+  $("preferences").onclick = open;
+  $("programmingSummary").onclick = open;
+  $("close").onclick = () => closeDialog($("settings"));
+  dismissible($("settings"));
 }

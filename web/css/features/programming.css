@@ -1,36 +1,25 @@
-/* Programming: what goes into the rotation. Source rows with status and retry notes, decade and genre chips,
-   the rating filter, the summary shown while closed and the no-match note. */
+/* Programming: the sheet that decides what goes into the rotation. Source rows with status and retry notes,
+   Plex setup, decade and genre chips, the rating filter, the no-match note, and the summary under Up next. */
 .programming {
   --source-logo-column: 40px;
   --source-row-height: 2.5rem;
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
 }
 
-[data-theater] .programming {
-  border: 0;
-  padding: 0;
-}
-
-.programming-toggle {
+/* The summary under Up next: one quiet line that opens the sheet. */
+.queue-programming {
   --button-inset: var(--space-2);
-  font: inherit;
-  letter-spacing: inherit;
-}
-
-.programming-toggle .icon {
+  display: flex;
+  justify-content: flex-start;
+  width: calc(100% + 2 * var(--button-inset));
+  min-height: 0;
+  margin-top: var(--space-1);
   color: var(--color-text-muted);
+  font-size: var(--text-meta);
+  text-align: left;
 }
 
-.programming-toggle[aria-expanded=false] .icon {
-  transform: rotate(-90deg);
-}
-
-/* The options are a collapse (components/collapse.css); the chevron turns with it. */
-@media (prefers-reduced-motion: no-preference) {
-  .programming-toggle .icon {
-    transition: transform var(--motion-layout) var(--ease-in-out);
-  }
+.queue-programming:hover:enabled {
+  color: var(--color-text);
 }
 
 /* Each group (Sources, Decade, Genre, Rating) opens with a small label; groups are a group gap apart. */
@@ -39,12 +28,6 @@
   color: var(--color-text-muted);
   font-size: var(--text-meta);
   font-weight: 600;
-}
-
-.programming-summary {
-  margin-top: var(--space-1);
-  color: var(--color-text-muted);
-  font-size: var(--text-meta);
 }
 
 .programming-empty {
@@ -158,12 +141,5 @@
 @media (pointer: coarse) {
   .programming {
     --source-row-height: var(--control-touch);
-  }
-}
-
-@media (max-width: 54rem) {
-  .programming {
-    border: 0;
-    padding: 0;
   }
 }

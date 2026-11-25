@@ -17,10 +17,11 @@ export const el = (tag, cls, content) => {
 const token = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function timing(opening) {
+// Content entering or leaving (opening, closing, appearing) eases out; an item moving to a new place eases in and out.
+function timing(opening, moving = false) {
   return {
     duration: parseFloat(token(opening ? "--motion-layout" : "--motion-layout-exit")),
-    easing: token("--ease-in-out")
+    easing: token(moving ? "--ease-in-out" : "--ease-out")
   };
 }
 
@@ -80,6 +81,65 @@ export function reveal(node, shown) {
   };
 }
 
+// Overlay motion for <dialog>: a sheet slides in from its edge, a centred dialog grows from 95%; both fade, with the
+// backdrop. Closing runs the same motion in reverse, faster, then closes. Esc and a click on the backdrop close too.
+function overlayFrames(dialog) {
+  if (still()) {
+    return {opacity: [0, 1]};
+  }
+  return dialog.classList.contains("dialog--sheet") ?
+    {opacity: [0, 1], transform: ["translateX(100%)", "none"]} :
+    {opacity: [0, 1], transform: ["scale(.95)", "none"]};
+}
+
+export function openDialog(dialog) {
+  // Reopening while it closes: drop the closing motion and open from where it is.
+  if (dialog.dataset.closing !== undefined) {
+    delete dialog.dataset.closing;
+    dialog.getAnimations({subtree: true}).forEach(animation => animation.cancel());
+  } else if (dialog.open) {
+    return;
+  } else {
+    dialog.showModal();
+  }
+  const time = timing(true);
+  dialog.animate(overlayFrames(dialog), time);
+  dialog.animate({opacity: [0, 1]}, {...time, pseudoElement: "::backdrop"});
+}
+
+export function closeDialog(dialog) {
+  if (!dialog.open || dialog.dataset.closing !== undefined) {
+    return;
+  }
+  dialog.dataset.closing = "";
+  const time = {...timing(false), direction: "reverse", fill: "forwards"};
+  const closing = dialog.animate(overlayFrames(dialog), time);
+  const backdrop = dialog.animate({opacity: [0, 1]}, {...time, pseudoElement: "::backdrop"});
+  // Both hold their last frame until the dialog is closed, then are cancelled so the next opening starts clean.
+  closing.onfinish = () => {
+    delete dialog.dataset.closing;
+    dialog.close();
+    closing.cancel();
+    backdrop.cancel();
+  };
+}
+
+export function dismissible(dialog) {
+  dialog.addEventListener("cancel", event => {
+    event.preventDefault();
+    closeDialog(dialog);
+  });
+  // The backdrop belongs to the dialog element, so a click counts as outside only by position.
+  dialog.addEventListener("click", event => {
+    const box = dialog.getBoundingClientRect();
+    const inside = event.clientX >= box.left && event.clientX <= box.right &&
+      event.clientY >= box.top && event.clientY <= box.bottom;
+    if (event.target === dialog && !inside) {
+      closeDialog(dialog);
+    }
+  });
+}
+
 // List motion: note where a list's items are, change the list, then glide() moves each item that stayed
 // from its old place to its new one and fades in the items that are new.
 export function places(items) {
@@ -98,7 +158,7 @@ export function glide(items, before) {
     }
     const offset = top - item.getBoundingClientRect().top;
     if (Math.abs(offset) > .5) {
-      item.animate({transform: [`translateY(${offset}px)`, "none"]}, timing(true));
+      item.animate({transform: [`translateY(${offset}px)`, "none"]}, timing(true, true));
     }
   }
 }

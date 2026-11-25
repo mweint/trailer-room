@@ -1,11 +1,6 @@
-/* Preferences: Plex setup and the hidden and skipped lists inside the preferences dialog. */
-.preferences {
-  --restore-reference-offset: 3px;
-}
-
+/* Inside the Programming sheet: Plex setup (part of Sources) and the hidden and skipped lists with Restore. */
 .plex-settings {
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: var(--space-4);
+  margin-top: var(--space-2);
 }
 
 .plex-settings p {
@@ -13,19 +8,19 @@
   overflow-wrap: anywhere;
 }
 
+/* One line: what is connected, then its actions as links. */
 .plex-library-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  min-height: var(--control);
 }
 
-.plex-library-row > .button {
+.plex-row-actions {
+  display: flex;
   flex: none;
-}
-
-.plex-begin {
-  margin-top: var(--space-2);
+  gap: var(--space-1);
 }
 
 .plex-picker {
@@ -56,6 +51,7 @@
 }
 
 .restore {
+  --restore-reference-offset: 3px;
   display: flex;
   align-items: center;
   justify-content: space-between;

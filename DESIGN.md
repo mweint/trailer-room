@@ -45,8 +45,8 @@ Every colour, and every shared size, radius, font size and duration, is a token.
 | | `--measure` | `65ch` | Longest line of body text |
 | Motion | `--motion-press` `--motion-fast` `--motion-base` | `120ms`, `150ms`, `200ms` | Press feedback / colour and hover / small entrances (menus, fades) |
 | | `--motion-layout` `--motion-layout-exit` | `250ms`, `200ms` | Expanding / collapsing. Exits are faster than entrances. |
-| | `--ease-out` | `cubic-bezier(.23, 1, .32, 1)` | Anything entering or leaving, and press feedback. The default. |
-| | `--ease-in-out` | `cubic-bezier(.77, 0, .175, 1)` | Anything moving or changing size on screen: collapse, switch knob, chevron |
+| | `--ease-out` | `cubic-bezier(.23, 1, .32, 1)` | Anything entering or leaving: regions opening and closing, overlays, press feedback. The default. |
+| | `--ease-in-out` | `cubic-bezier(.77, 0, .175, 1)` | Something already on screen moving to a new place: queue rows, the switch knob, a chevron turning |
 | | `--ease-colour` | `ease` | Colour and hover changes |
 
 **Colour.** Neutrals are pure grey (equal red, green and blue). Hue appears only where it carries meaning: focus (blue) and warning (amber). There is no accent colour until the brand has one; when it does, it is added here as a token and used for the same few things everywhere.
@@ -56,7 +56,7 @@ Every colour, and every shared size, radius, font size and duration, is a token.
 - UI motion stays under 300ms, and an exit is shorter than its entrance.
 - Animate opacity and transform where possible. Height is animated only for show and hide that would otherwise make the page jump (see CSS rules).
 - Under `prefers-reduced-motion: reduce`, movement and scaling stop, but fades and colour changes stay.
-- Buttons scale to `.97` while pressed. Menus open from their trigger at `scale(.95)` plus a fade, and close instantly.
+- Buttons scale to `.97` while pressed. Menus open from their trigger at `scale(.95)` plus a fade, and close instantly. The sheet slides in from its edge.
 - The theater-mode resize in `ui/theater.js` is a scripted animation with its own timings.
 
 ## Type roles
@@ -66,7 +66,7 @@ Every piece of text has one role, and each role has one size, weight and colour.
 | Role | Size | Weight | Colour | Examples |
 | --- | --- | --- | --- | --- |
 | Title | `--text-title` | 600 | `--color-text` | Film title |
-| Section | `--text-section` | 600 | `--color-text` | Up next, Programming, Preferences |
+| Section | `--text-section` | 600 | `--color-text` | Up next, Programming |
 | Body | `--text-ui`, line-height 1.375rem, at most `--measure` wide; two lines until More | 400 | `--color-text` | Film description |
 | Item | `--text-ui`, at most two lines then an ellipsis (full text in the tooltip) | 600 | `--color-text` | Queue row title |
 | Byline | `--text-ui` | 400 | `--color-text-secondary` | Directed by |
@@ -83,13 +83,14 @@ Every piece of text has one role, and each role has one size, weight and colour.
 - State attributes set by JavaScript: `data-crt` on `.screen`; `data-controls="hidden"`, `data-hover="local"` and `data-transport` on `.display`; `data-theater` on `.page`; `data-expanded` on `.theater`.
 - No `style="…"` attributes. JavaScript writes only these custom properties: `--fill` (range), `--queue-height` (queue), `--art` (screen artwork), `--beam` `--triad` `--tube-texture` (CRT).
 - **Motion is applied by kind, never per place.** Every change that moves or shows something is one of three kinds, and each has one implementation:
-  1. *In place.* A region opens, closes, appears or disappears (Programming, the description, Plex setup steps, the no-match note, the extra genre chips). It carries `.collapse` and changes only through `expand(toggle, open)` (the region named by the toggle's `aria-controls`) or `reveal(node, shown)` in `dom.js`. These measure the height before and after the change and animate between the two, with the content fading, using `--ease-in-out` over `--motion-layout` when opening and `--motion-layout-exit` when closing. This works in every browser and for partial states (a preview's first lines). Closed regions get `visibility: hidden`, so they leave the tab order. Neighbours that size from them (the queue) follow frame by frame. No feature writes its own height transition.
-  2. *Overlays.* Menus and the dialog open from `scale(.95)` with a fade and close faster, set in their component CSS.
+  1. *In place.* A region opens, closes, appears or disappears (Programming, the description, Plex setup steps, the no-match note, the extra genre chips). It carries `.collapse` and changes only through `expand(toggle, open)` (the region named by the toggle's `aria-controls`) or `reveal(node, shown)` in `dom.js`. These measure the height before and after the change and animate between the two, with the content fading, using `--ease-out` over `--motion-layout` when opening and `--motion-layout-exit` when closing. This works in every browser and for partial states (a preview's first lines). Closed regions get `visibility: hidden`, so they leave the tab order. Neighbours that size from them (the queue) follow frame by frame. No feature writes its own height transition.
+  2. *Overlays.* Menus open from their trigger at `scale(.95)` with a fade (menu CSS) and close instantly. Dialogs open and close only through `openDialog()` / `closeDialog()` in `dom.js`: a centred dialog grows from `scale(.95)`, a sheet slides in from its edge, both fade with their backdrop, and closing runs the same motion faster. Esc, the close button (an icon X at the end of the heading) and a click outside all close it.
   3. *Lists.* When a list's items change, `places()` before and `glide()` after slide the items that stayed to their new places and fade in the new ones (the queue).
 
   Changes driven by playback or keyboard shortcuts (next film, the picture's cover) are exempt and only cross-fade. Under `prefers-reduced-motion: reduce`, sizes and positions snap and fades remain.
 - **Clipped content fades; it is never cut hard.** Where more content sits past an edge, that edge fades over a mask: the queue's top and bottom (only while rows are hidden there) and a preview collapse's last line. A label (a title in a list) truncates with an ellipsis instead. Masks use `black` and `transparent` as alpha only; they are not colours.
 - **Labels align to the column; fills bleed.** A button whose label must line up with a column edge (queue rows, the sources toggle, More) uses `.button--flush`: it keeps its padding and takes an equal negative margin, so the hover fill extends past the column instead of the text sitting off it. A scroll box around flush rows pads by the same inset and cancels it with a negative margin, so the fill is not clipped; on the scrollbar side it pads one inset more, so fills never run under a scrollbar. A row with a thumbnail uses the same inset on every side of it, and its corners are concentric with the thumbnail's (outer radius ≈ inner radius + inset).
+- **The sidebar is Up next only.** Its heading is followed by one summary line of what Programming lets through, which opens the Programming sheet. Beside the player the list ends level with the bottom of the picture, so both columns share one edge.
 - **Queue rows** span the column. Remove (×) sits at the right end, shows on hover or focus and always on touch, and takes the film out of the current round only; Hide movie in the film options is the lasting version.
 - One file per component or feature. A feature file may hold several closely tied roots (`screen.css`: `.display`, `.screen`, `.start`; `dock.css`: `.dock`, `.transport`, `.view-tools`, `.wake-surface`). Formatted one declaration per line.
 - `base.css` holds the reset, element defaults, `.icon` and `.sr-only`. `layout.css` holds the page grid (`.page`, `.theater`, `.sidebar`), theater mode and the page breakpoints.
@@ -107,7 +108,7 @@ Primitives (`web/css/components/`), reused everywhere:
 | Select | `.select` | — |
 | Menu | `.menu` | film options. The compact view-tools popover is part of the dock, because the same buttons sit inline at every other width. |
 | Panel heading | `.panel-heading` | — |
-| Dialog | `.dialog` | — |
+| Dialog | `.dialog` | `--sheet` (docked to the right edge, full height) |
 | Spinner | `.spinner` | on pill, on picture |
 | Collapse | `.collapse` | `--preview` (first lines stay, last fades). Opened and closed only through `expand()` / `reveal()` in `dom.js`. |
 | Chip | `.chip` in `.chips` | Toggle with `aria-pressed`; an Any chip clears the group; less common values open under a +N chip. |
@@ -116,14 +117,13 @@ Features (`web/css/features/` and `web/js/ui/`). Each has a CSS file; the module
 
 | Feature | Root | Module | Owns |
 | --- | --- | --- | --- |
-| Masthead | `.mast` | `preferences.js` (button only) | Wordmark, preferences button |
+| Masthead | `.mast` | `preferences.js` (button only) | Wordmark, Programming button |
 | Screen | `.screen` | `screen.js` | Artwork, embed, cover, play pill |
 | CRT | `.screen[data-crt]` | `crt.js` | Raster, bloom, convergence |
 | Dock | `.dock` | `dock.js`, `transport.js` | Auto-hide and view tools; title, timeline, transport buttons, volume |
 | Film info | `.film-info` | `film-info.js` | Title, credit, facts, description (three lines, More), film options menu |
 | Queue | `.queue` | `queue.js` | Up-next list, poster loading as rows scroll into view, list height |
-| Programming | `.programming` | `programming.js` | What goes into the rotation: source rows with status and retry, decade and genre chips, rating filter, live film count, summary while closed, Clear filters when nothing matches |
-| Preferences | `.preferences` | `preferences.js`, `plex.js` | Plex setup, hidden and skipped lists |
+| Programming | `.programming` (a sheet) | `programming.js`, `preferences.js`, `plex.js` | Everything about what plays: source rows with status and retry, Plex setup, decade and genre chips, rating filter, hidden and skipped lists, live film count, Clear filters when nothing matches. Opened from the masthead button and the summary line under Up next. |
 
 `theater.js` (theater mode, fullscreen; styled in `layout.css`) and `shortcuts.js` have no CSS file of their own.
 

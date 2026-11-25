@@ -64,7 +64,7 @@
   </svg>
   <header class="mast">
     <h1 class="mast-title"><svg class="brand-mark" aria-hidden="true" viewBox="1 4.5 30 23" width="30" height="23"><use href="/logos/trailer-room.svg?v=7#monogram"/></svg>Trailer Room</h1>
-    <button id="preferences" class="button mast-preferences" aria-label="Preferences" title="Preferences" aria-haspopup="dialog" aria-controls="settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg></button>
+    <button id="preferences" class="button mast-preferences" aria-label="Programming" title="Programming" aria-haspopup="dialog" aria-controls="settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg></button>
   </header>
   <main class="page">
     <section id="theater" class="theater" aria-label="Trailer player">
@@ -124,34 +124,23 @@
     </section>
     <aside class="sidebar">
       <section class="queue" aria-busy="true"><div class="panel-heading"><h2 class="panel-title">Up next</h2><span id="remaining" class="panel-count"></span></div>
+        <button id="programmingSummary" class="button button--flush queue-programming" type="button" aria-haspopup="dialog" aria-controls="settings" title="Change programming"></button>
         <div class="queue-preview"><ol id="queue" class="queue-list"></ol><p id="queueEmpty" class="queue-empty"></p></div></section>
-      <section class="programming" aria-labelledby="programmingTitle">
-        <div class="panel-heading"><h2 id="programmingTitle" class="panel-title"><button id="programmingToggle" class="button button--flush programming-toggle" type="button" aria-expanded="true" aria-controls="programmingOptions">Programming <svg class="icon icon--sm" aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></button></h2><span id="programmingCount" class="panel-count"></span></div>
-        <p id="programmingSummary" class="collapse programming-summary" hidden></p>
-        <p id="programmingEmpty" class="collapse programming-empty" hidden>No films match. <button id="clearFilters" class="button button--link" type="button">Clear filters</button></p>
-        <div id="programmingOptions" class="collapse programming-options">
-          <h3 class="programming-label">Sources</h3>
-          <div id="sources" class="source-list"></div>
-          <h3 class="programming-label" id="decadeLabel">Decade</h3>
-          <div id="decades" class="chips" role="group" aria-labelledby="decadeLabel"></div>
-          <h3 class="programming-label" id="genreLabel">Genre</h3>
-          <div id="genres" class="chips" role="group" aria-labelledby="genreLabel"></div>
-          <h3 class="programming-label">Rating</h3>
-          <div class="rating-filter">
-            <label for="maxRating">Up to U.S. rating</label>
-            <select id="maxRating" class="select"><option value="">Any rating</option></select>
-            <label class="unrated-option">Include unrated films<input type="checkbox" id="includeUnrated"><span class="switch" aria-hidden="true"></span></label>
-          </div>
-        </div>
-      </section>
     </aside>
   </main>
-  <dialog id="settings" class="dialog preferences" aria-labelledby="settingsTitle"><div class="panel-heading"><h2 id="settingsTitle" class="panel-title">Preferences</h2><button id="close" class="button">Close</button></div>
+  <dialog id="settings" class="dialog dialog--sheet programming" aria-labelledby="settingsTitle">
+    <div class="panel-heading"><h2 id="settingsTitle" class="panel-title">Programming</h2><span id="programmingCount" class="panel-count"></span>
+      <button id="close" class="button button--icon dialog-close" type="button" aria-label="Close" title="Close (Esc)"><svg class="icon" aria-hidden="true"><use href="#i-remove"/></svg></button></div>
+    <p id="programmingEmpty" class="collapse programming-empty" hidden>No films match. <button id="clearFilters" class="button button--link" type="button">Clear filters</button></p>
+    <h3 class="programming-label">Sources</h3>
+    <div id="sources" class="source-list"></div>
     <section class="plex-settings" aria-labelledby="plexTitle">
-      <h3 id="plexTitle">Plex library</h3>
+      <h4 id="plexTitle" class="sr-only">Plex library</h4>
       <div class="plex-library-row"><p id="plexSummary"></p>
-        <button id="plexDisconnect" class="button button--outline collapse" type="button" hidden>Remove library</button></div>
-      <button id="plexBegin" class="button button--outline plex-begin collapse" type="button">Connect Plex</button>
+        <div class="plex-row-actions">
+          <button id="plexBegin" class="button button--link collapse" type="button">Connect Plex</button>
+          <button id="plexDisconnect" class="button button--link collapse" type="button" hidden>Remove</button>
+        </div></div>
       <form id="plexPicker" class="plex-picker collapse" hidden>
         <label for="plexServer">Server</label><select id="plexServer" class="select"></select>
         <label for="plexLibrary">Library</label><select id="plexLibrary" class="select"></select>
@@ -161,8 +150,18 @@
       </form>
       <p id="plexMessage" class="plex-message" role="status"></p>
     </section>
-    <h3>Hidden movies</h3><div id="hiddenList"></div>
-    <h3>Skipped trailers</h3><div id="skippedList"></div>
+    <h3 class="programming-label" id="decadeLabel">Decade</h3>
+    <div id="decades" class="chips" role="group" aria-labelledby="decadeLabel"></div>
+    <h3 class="programming-label" id="genreLabel">Genre</h3>
+    <div id="genres" class="chips" role="group" aria-labelledby="genreLabel"></div>
+    <h3 class="programming-label">Rating</h3>
+    <div class="rating-filter">
+      <label for="maxRating">Up to U.S. rating</label>
+      <select id="maxRating" class="select"><option value="">Any rating</option></select>
+      <label class="unrated-option">Include unrated films<input type="checkbox" id="includeUnrated"><span class="switch" aria-hidden="true"></span></label>
+    </div>
+    <h3 class="programming-label">Hidden movies</h3><div id="hiddenList"></div>
+    <h3 class="programming-label">Skipped trailers</h3><div id="skippedList"></div>
   </dialog>
   <script type="module" src="/js/main.js"></script>
 </body></html>

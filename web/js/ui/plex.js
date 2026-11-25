@@ -24,8 +24,8 @@ export function plexPreferences(sync) {
 
   function status(source) {
     state = source;
-    $("plexSummary").textContent = state ? state.server + " / " + state.name : "Add films from a library you choose.";
-    begin.textContent = state ? "Change library" : "Connect Plex";
+    $("plexSummary").textContent = state ? "Plex: " + state.server + " / " + state.name : "Add films from a Plex library.";
+    begin.textContent = state ? "Change" : "Connect Plex";
     reveal(disconnect, !!state);
   }
   status(null);
