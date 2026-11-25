@@ -1,9 +1,24 @@
-/* Queue: the up-next list. JavaScript sets --queue-rows to the number of rows that fit beside the player. */
+/* Queue: the up-next list. Beside the player JavaScript sets --queue-height so the list fills the column;
+   it scrolls, and its edges fade where more rows sit past them. */
+@property --queue-fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --queue-fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 .queue {
   --poster-width: 38px;
   --poster-height: 56px;
-  --queue-row-height: calc(var(--poster-height) + 2 * var(--space-1));
+  --queue-row-height: calc(var(--poster-height) + 2 * var(--queue-inset));
   --queue-sub-offset: 2px;
+  --queue-inset: var(--space-2);
+  --queue-fade: 3rem;
 }
 
 .queue-count {
@@ -12,11 +27,46 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The padding gives the rows' bleed room inside the scroll box, and the negative margin cancels it.
+   The end side keeps one more inset so row fills stop short of the scrollbar, overlay or not. */
 .queue-preview {
   min-height: calc(4 * var(--queue-row-height));
-  height: calc(var(--queue-rows, 4) * var(--queue-row-height));
-  margin-top: var(--space-2);
+  height: var(--queue-height, calc(4 * var(--queue-row-height)));
+  margin: var(--space-2) calc(-1 * var(--queue-inset)) 0;
+  padding-inline: var(--queue-inset) calc(2 * var(--queue-inset));
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+  --queue-fade-bottom: var(--queue-fade);
+  mask-image: linear-gradient(to bottom, transparent, black var(--queue-fade-top),
+    black calc(100% - var(--queue-fade-bottom)), transparent);
+}
+
+/* Where scroll-driven animation exists, each fade appears only while rows are hidden past that edge. */
+@supports (animation-timeline: scroll()) {
+  .queue-preview {
+    --queue-fade-bottom: 0px;
+    animation: queue-fade linear both;
+    animation-timeline: scroll(self);
+  }
+}
+
+@keyframes queue-fade {
+  0% {
+    --queue-fade-top: 0px;
+    --queue-fade-bottom: var(--queue-fade);
+  }
+
+  15%,
+  85% {
+    --queue-fade-top: var(--queue-fade);
+    --queue-fade-bottom: var(--queue-fade);
+  }
+
+  100% {
+    --queue-fade-top: var(--queue-fade);
+    --queue-fade-bottom: 0px;
+  }
 }
 
 .queue-list {
@@ -28,12 +78,62 @@
   color: var(--color-text-muted);
 }
 
+/* A row: the film button spans the full width and the remove button sits over its right end. */
+.queue-item {
+  position: relative;
+}
+
 .queue-row {
-  width: 100%;
-  padding: var(--space-1) 0;
+  --button-inset: var(--queue-inset);
+  display: flex;
+  width: calc(100% + 2 * var(--button-inset));
+  /* One inset on every side of the poster. */
+  padding-block: var(--button-inset);
+  padding-inline-end: calc(var(--control) + var(--space-2));
   gap: var(--space-3);
   text-align: left;
   justify-content: flex-start;
+}
+
+.queue-item:hover .queue-row {
+  background: var(--color-surface-hover);
+}
+
+/* Inside the scroll box the focus ring is drawn inward so it is not clipped. */
+.queue-item :focus-visible {
+  outline-offset: -2px;
+}
+
+/* Remove takes the film out of this round only. It shows on hover or focus, and always on touch. */
+.queue-remove {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  block-size: var(--control);
+  margin-block: auto;
+  color: var(--color-text-muted);
+  opacity: 0;
+}
+
+.queue-remove:hover:enabled {
+  background: transparent;
+  color: var(--color-highlight);
+}
+
+.queue-item:is(:hover, :focus-within) .queue-remove {
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  .queue-remove {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .queue-remove {
+    transition: opacity var(--motion-fast) var(--ease-out);
+  }
 }
 
 .queue-row img,

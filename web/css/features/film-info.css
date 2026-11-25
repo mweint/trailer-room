@@ -4,7 +4,7 @@
   --film-info-min-height: 4.5rem;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "heading options" "facts options";
+  grid-template-areas: "heading options" "facts options" "synopsis synopsis";
   align-content: start;
   align-items: baseline;
   gap: var(--space-1) var(--space-3);
@@ -72,6 +72,51 @@
 .film-options {
   grid-area: options;
   align-self: start;
+}
+
+/* Description: three lines, the last faded, until More opens it. */
+.film-synopsis {
+  --synopsis-lines: 3lh;
+  --synopsis-fade: 1lh;
+  grid-area: synopsis;
+  max-width: 68ch;
+  margin-top: var(--space-1);
+  font-size: var(--text-ui);
+  line-height: 1.375rem;
+  color: var(--color-text-secondary);
+}
+
+.film-synopsis:has(.film-synopsis-text:empty) {
+  display: none;
+}
+
+.film-synopsis-text {
+  overflow: hidden;
+}
+
+.film-synopsis:has([aria-expanded=false]) .film-synopsis-text {
+  max-height: var(--synopsis-lines);
+}
+
+@supports (height: calc-size(auto, size)) {
+  .film-synopsis:has([aria-expanded=false]) .film-synopsis-text {
+    max-height: none;
+    height: calc-size(auto, min(size, var(--synopsis-lines)));
+  }
+}
+
+.film-synopsis:has([aria-expanded=false]:not([hidden])) .film-synopsis-text {
+  mask-image: linear-gradient(to bottom, black calc(100% - var(--synopsis-fade)), transparent);
+}
+
+.film-synopsis-toggle {
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .film-synopsis-text {
+    transition: height var(--motion-layout) var(--ease-layout);
+  }
 }
 
 @container theater (max-width: 30rem) {

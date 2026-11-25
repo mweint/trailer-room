@@ -64,8 +64,8 @@ export function renderSources() {
   }
 }
 
+// CSS animates the collapse from aria-expanded and hides the closed list from focus and screen readers.
 function showSourceOptions() {
-  $("sourceOptions").hidden = pref("sourcesCollapsed");
   $("sourcesToggle").setAttribute("aria-expanded", String(!pref("sourcesCollapsed")));
 }
 

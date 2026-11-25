@@ -69,4 +69,6 @@
   --motion-fast: 140ms;
   --motion-base: 220ms;
   --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --motion-layout: 360ms;
+  --ease-layout: cubic-bezier(.4, 0, .2, 1);
 }

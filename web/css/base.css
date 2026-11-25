@@ -8,6 +8,8 @@
   background: var(--color-bg);
   color: var(--color-text);
   scrollbar-gutter: stable;
+  /* Lets height transition to and from auto, so show and hide can animate. */
+  interpolate-size: allow-keywords;
 }
 
 body {

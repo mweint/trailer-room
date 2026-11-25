@@ -114,6 +114,12 @@ export function skipTo(film = null) {
   advance(film);
 }
 
+// Takes a film out of this round's queue only; it can return next round. Hiding a film is separate and lasting.
+export function removeFromQueue(film) {
+  markSeen(film);
+  rebuild();
+}
+
 function nothingToPlay() {
   const waiting = sourcesPending();
   const enabledAny = anySourceEnabled();

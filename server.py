@@ -103,7 +103,7 @@ def detail_cached(key, youtube, slug, period):
     if outage and not videos:
         raise URLError("Trailer metadata is temporarily unavailable")
     return {"imdb": imdb, "videos": videos, "art": meta.get("background") or "",
-            "directors": meta.get("director") or [],
+            "directors": meta.get("director") or [], "description": meta.get("description") or "",
             "genres": meta.get("genres") or [], "runtime": meta.get("runtime") or "",
             "rating": meta.get("imdbRating") or row.get("rating")}
 

@@ -57,6 +57,7 @@
       <symbol id="i-muted" viewBox="0 0 24 24"><path d="M3 9h4l5-4v14l-5-4H3zM16 9l6 6m0-6-6 6"/></symbol>
       <symbol id="i-alternate" viewBox="0 0 24 24"><path d="M3 7h3c4 0 6 10 10 10h5m-4-4 4 4-4 4M3 17h3c1.6 0 3.1-1.8 4.1-3.3M14 8.5c.7-.9 1.4-1.5 2.5-1.5H21m-4-4 4 4-4 4"/></symbol>
       <symbol id="i-hide" viewBox="0 0 24 24"><path d="m3 3 18 18M10 5.3a13 13 0 0 1 2-.2c5.5 0 9 6.9 9 6.9a19 19 0 0 1-3.3 4.3M6.4 6.6A21 21 0 0 0 3 12s3.5 6.9 9 6.9c1.7 0 3.1-.4 4.4-1.1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+      <symbol id="i-remove" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
     </defs>
   </svg>
   <header class="mast">
@@ -105,6 +106,10 @@
       <section class="film-info" id="filmInfo" aria-labelledby="filmTitle" aria-busy="true">
         <div class="film-heading"><h2 id="filmTitle" class="film-title"></h2><p id="credit" class="film-credit"></p></div>
         <div class="film-facts"><p id="meta"></p><p id="clipMeta"></p></div>
+        <div class="film-synopsis">
+          <p id="synopsis" class="film-synopsis-text"></p>
+          <button id="synopsisToggle" class="button button--link button--flush film-synopsis-toggle" type="button" aria-expanded="false" aria-controls="synopsis" hidden>More</button>
+        </div>
         <details id="filmOptions" class="menu film-options">
           <summary class="menu-toggle" aria-label="Film options" title="Film options"><svg class="menu-toggle-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></summary>
           <div class="menu-list">
@@ -118,8 +123,8 @@
     <aside class="sidebar">
       <section class="queue" aria-busy="true"><div class="panel-heading"><h2 class="panel-title">Up next</h2><span id="remaining" class="queue-count"></span></div>
         <div class="queue-preview"><ol id="queue" class="queue-list"></ol><p id="queueEmpty" class="queue-empty"></p></div></section>
-      <section class="sources"><div class="panel-heading"><h2 class="panel-title"><button id="sourcesToggle" class="button sources-toggle" type="button" aria-expanded="true" aria-controls="sourceOptions">Film sources <svg class="icon icon--sm" aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></button></h2></div>
-        <div id="sourceOptions">
+      <section class="sources"><div class="panel-heading"><h2 class="panel-title"><button id="sourcesToggle" class="button button--flush sources-toggle" type="button" aria-expanded="true" aria-controls="sourceOptions">Film sources <svg class="icon icon--sm" aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></button></h2></div>
+        <div id="sourceOptions" class="source-options">
         <div id="sources" class="source-list"></div>
         <div class="rating-filter">
           <label for="maxRating">Maximum U.S. film rating</label>

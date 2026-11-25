@@ -20,8 +20,24 @@ export function showFilmInfo(film, info, clip, link) {
     sourceNames(film)
   ].filter(Boolean).join(" · ");
   $("clipMeta").textContent = [clip?.height ? clip.height + "p source" : "", likes].filter(Boolean).join(" · ");
+  $("synopsis").textContent = info?.description || "";
+  setSynopsisExpanded(false);
   $("hide").disabled = false;
   $("alternate").disabled = !clip;
+}
+
+function setSynopsisExpanded(expanded) {
+  $("synopsisToggle").setAttribute("aria-expanded", String(expanded));
+  $("synopsisToggle").textContent = expanded ? "Less" : "More";
+  fitSynopsis();
+}
+
+// The toggle shows only when the description runs past its three clamped lines (--synopsis-lines in CSS).
+// Measured against the clamp, not the current height, so it stays put while the text animates.
+function fitSynopsis() {
+  const text = $("synopsis");
+  const clamp = 3 * parseFloat(getComputedStyle(text).lineHeight);
+  $("synopsisToggle").hidden = text.scrollHeight <= clamp + 1;
 }
 
 export function setFilmInfoState(hidden, busy) {
@@ -55,6 +71,10 @@ export function dismissFilmOptions() {
 
 // notice(message) writes the status line under the player.
 export function initFilmInfo(notice) {
+  $("synopsisToggle").onclick = () => {
+    setSynopsisExpanded($("synopsisToggle").getAttribute("aria-expanded") !== "true");
+  };
+  new ResizeObserver(fitSynopsis).observe($("synopsis"));
   document.addEventListener("click", e => {
     if ($("filmOptions").open && !$("filmOptions").contains(e.target)) {
       $("filmOptions").open = false;

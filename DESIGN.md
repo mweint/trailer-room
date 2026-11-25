@@ -42,8 +42,9 @@ Every colour, and every shared size, radius, font size and duration, is a token.
 | | `--font-brand` | `"DM Serif Text", Georgia, serif` | Masthead wordmark only |
 | | `--text-root` | `16px` | Root size; the page does not scale with the browser's default font size |
 | | `--text-meta` `--text-ui` `--text-body` `--text-section` `--text-title` `--text-brand` | `.8125 .875 1 1.125 1.25 1.5rem` | Six sizes, no others |
-| Motion | `--motion-fast` `--motion-base` | `140ms`, `220ms` | State change / layout change |
-| | `--ease-out` | `cubic-bezier(.22, 1, .36, 1)` | All CSS transitions. The theater-mode resize in `ui/theater.js` is a scripted animation with its own timings. |
+| Motion | `--motion-fast` `--motion-base` | `140ms`, `220ms` | Colour and opacity state change / small movement |
+| | `--ease-out` | `cubic-bezier(.22, 1, .36, 1)` | State transitions. The theater-mode resize in `ui/theater.js` is a scripted animation with its own timings. |
+| | `--motion-layout` `--ease-layout` | `360ms`, `cubic-bezier(.4, 0, .2, 1)` | Anything that changes height or moves other content. Ease-in-out on purpose: a sharp ease-out covers most of the distance in the first two frames and reads as a snap. |
 
 Neutrals are warm (slightly olive). The current mix of warm and blue-grey surfaces is drift and is folded into the tokens above.
 
@@ -52,7 +53,11 @@ Neutrals are warm (slightly olive). The current mix of warm and blue-grey surfac
 - Style by **class**. IDs are for JavaScript, `label for`, and ARIA only and never appear in a selector.
 - State comes from attributes the markup already needs (`[hidden]`, `[disabled]`, `[aria-pressed]`, `[aria-expanded]`, `[aria-busy]`, `[open]`) or a `data-*` attribute on the component root. No state classes invented per case.
 - State attributes set by JavaScript: `data-crt` on `.screen`; `data-controls="hidden"`, `data-hover="local"` and `data-transport` on `.display`; `data-theater` on `.page`; `data-expanded` on `.theater`.
-- No `style="…"` attributes. JavaScript writes only these custom properties: `--fill` (range), `--queue-rows` (queue), `--art` (screen artwork), `--beam` `--triad` `--tube-texture` (CRT).
+- No `style="…"` attributes. JavaScript writes only these custom properties: `--fill` (range), `--queue-height` (queue), `--art` (screen artwork), `--beam` `--triad` `--tube-texture` (CRT).
+- **Every show or hide that moves layout animates.** Height transitions to and from `auto` (`interpolate-size: allow-keywords` is set on `:root`) over `--motion-layout` with `--ease-layout`, and the content fades with it. Closed content also gets `visibility: hidden`, so it leaves the tab order and the accessibility tree. Nothing snaps except under `prefers-reduced-motion: reduce`.
+- **Clipped content fades; it is never cut hard.** Where more content sits past an edge, that edge fades over a mask: the queue's top and bottom (only while rows are hidden there) and the description's last line. Masks use `black` and `transparent` as alpha only; they are not colours.
+- **Labels align to the column; fills bleed.** A button whose label must line up with a column edge (queue rows, the sources toggle, More) uses `.button--flush`: it keeps its padding and takes an equal negative margin, so the hover fill extends past the column instead of the text sitting off it. A scroll box around flush rows pads by the same inset and cancels it with a negative margin, so the fill is not clipped; on the scrollbar side it pads one inset more, so fills never run under a scrollbar. A row with a thumbnail uses the same inset on every side of it.
+- **Queue rows** span the column. Remove (×) sits at the right end, shows on hover or focus and always on touch, and takes the film out of the current round only; Hide movie in the film options is the lasting version.
 - One file per component or feature. A feature file may hold several closely tied roots (`screen.css`: `.display`, `.screen`, `.start`; `dock.css`: `.dock`, `.transport`, `.view-tools`, `.wake-surface`). Formatted one declaration per line.
 - `base.css` holds the reset, element defaults, `.icon` and `.sr-only`. `layout.css` holds the page grid (`.page`, `.theater`, `.sidebar`), theater mode and the page breakpoints.
 - Breakpoints: page at `54rem` and `36rem`; player at container width `30rem`; touch via `(pointer: coarse)`. Motion respects `prefers-reduced-motion`.
@@ -63,7 +68,7 @@ Primitives (`web/css/components/`), reused everywhere:
 
 | Component | Class | Variants |
 | --- | --- | --- |
-| Button | `.button` | `--icon` (square), `--outline` (dialog actions), `--link` (inline retry), `--on-video` |
+| Button | `.button` | `--icon` (square), `--outline` (dialog actions), `--link` (inline retry, More), `--on-video`, `--flush` (aligned to the column; padding set by `--button-inset`) |
 | Switch | `.switch` | — |
 | Range | `.range` | timeline, volume |
 | Select | `.select` | — |
@@ -80,8 +85,8 @@ Features (`web/css/features/` and `web/js/ui/`). Each has a CSS file; the module
 | Screen | `.screen` | `screen.js` | Artwork, embed, cover, play pill |
 | CRT | `.screen[data-crt]` | `crt.js` | Raster, bloom, convergence |
 | Dock | `.dock` | `dock.js`, `transport.js` | Auto-hide and view tools; title, timeline, transport buttons, volume |
-| Film info | `.film-info` | `film-info.js` | Title, credit, facts, film options menu |
-| Queue | `.queue` | `queue.js` | Up-next list, poster loading, row fitting |
+| Film info | `.film-info` | `film-info.js` | Title, credit, facts, description (three lines, More), film options menu |
+| Queue | `.queue` | `queue.js` | Up-next list, poster loading as rows scroll into view, list height |
 | Sources | `.sources` | `sources.js` | Source toggles, status and retry, rating filter |
 | Preferences | `.preferences` | `preferences.js`, `plex.js` | Plex setup, hidden and skipped lists |
 
@@ -112,7 +117,7 @@ ui/
 - Dependencies point one way: `ui → playback → library → catalog/prefs/api`. `ui` modules never import each other; `main.js` connects them with callbacks. The playback layer creates the provider iframe and loads the provider script itself; every other change to the page goes through the view object `main.js` hands it.
 - Both provider adapters expose the same interface: `play pause seek seekTo volume mute captions destroy`, plus optional `canReuse` and `load`. They receive their callbacks (state, position, ended, failed, blocked, audio ready) as one hooks argument.
 - No module-level mutable state shared by import. State lives in the module that owns it and is changed through its functions. The one exception is `SOURCES` in `catalog.js`, read by import and changed only through `addSource` and `removeSource`.
-- No file over about 250 lines (`playback/controller.js` is 276: the advance loop and its failure paths share one state and stay together). One statement per line.
+- No file over about 250 lines (`playback/controller.js` is 282: the advance loop and its failure paths share one state and stay together). One statement per line.
 - DOM is built with `el()` and `textContent`; never `innerHTML`.
 
 ## Server
