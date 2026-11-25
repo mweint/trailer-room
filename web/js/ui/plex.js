@@ -29,6 +29,8 @@ function chosen(list) {
   return Array.from(list.querySelectorAll("input:checked"), input => input.value);
 }
 
+// The message line shows only work in progress and errors. A finished change shows itself in the source list,
+// so the line clears.
 // sync(force) reloads the collections after the libraries change.
 export function plexPreferences(sync) {
   const picker = $("plexPicker");
@@ -70,7 +72,7 @@ export function plexPreferences(sync) {
     sessionStorage.removeItem(flowKey);
     reveal(picker, false);
     await sync(true);
-    message.textContent = "Plex removed from Trailer Room.";
+    message.textContent = "";
   }
 
   async function resume() {
@@ -142,7 +144,7 @@ export function plexPreferences(sync) {
       sessionStorage.removeItem(flowKey);
       reveal(picker, false);
       await sync(true);
-      message.textContent = "Plex libraries updated.";
+      message.textContent = "";
     } catch (error) {
       message.textContent = error.message;
     } finally {

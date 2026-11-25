@@ -93,7 +93,7 @@ function renderSources() {
       }
     }
   } else {
-    const add = el("button", "button button--flush source-add", "+ Connect Plex");
+    const add = el("button", "button button--flush source-add", "Connect Plex");
     add.type = "button";
     add.onclick = () => plexActions.connectPlex();
     rows.push(add);
