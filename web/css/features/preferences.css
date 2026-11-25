@@ -26,6 +26,29 @@
   border-color: var(--color-border);
 }
 
+.plex-libraries {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.plex-libraries legend {
+  padding: 0;
+  font-size: var(--text-meta);
+}
+
+/* One switch per library, laid out like a source row. */
+.plex-library {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  position: relative;
+  min-height: var(--control);
+  font-size: var(--text-ui);
+  cursor: pointer;
+}
+
 .plex-actions {
   display: flex;
   flex-wrap: wrap;

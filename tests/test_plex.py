@@ -76,7 +76,7 @@ class PlexTests(unittest.TestCase):
         self.source.action("libraries", flow)
         key = self.source.action("connect", dict(flow, library="7"))["device_key"]
         self.source = plex.PlexSource(self.root, dict)
-        body = {"connection": self.snapshot()["sources"]["plex"]["connection"]}
+        body = {"connection": self.snapshot()["plex"]["connection"]}
         self.assertNotIn(key, self.source.path.read_text())
         self.assertNotIn(key, json.dumps(self.snapshot()))
         with patch("plex.request", side_effect=AssertionError("Unexpected network request")):
@@ -93,7 +93,8 @@ class PlexTests(unittest.TestCase):
         legacy = dict(self.source.saved)
         del legacy["device_hash"], legacy["connection"]
         self.source.write(legacy)
-        body = {"connection": self.snapshot()["sources"]["plex"]["connection"]}
+        self.source = plex.PlexSource(self.root, dict)
+        body = {"connection": self.snapshot()["plex"]["connection"]}
         self.assertTrue(self.source.action("disconnect", body)["signInRequired"])
         self.remote.owner = "another-account"
         with patch("plex.discover", side_effect=AssertionError("Unnecessary discovery")):
@@ -126,24 +127,25 @@ class PlexTests(unittest.TestCase):
         self.assertFalse(any("/8/all" in url for url in self.remote.calls))
         self.source = plex.PlexSource(self.root, dict)
         snapshot = self.snapshot()
-        self.assertEqual(snapshot["sources"]["plex"]["name"], "Festival picks")
-        self.assertEqual([r["title"] for r in snapshot["catalogs"]["plex"]], ["Feature"])
+        self.assertEqual(snapshot["sources"]["plex-7"]["name"], "Festival picks")
+        self.assertEqual([r["title"] for r in snapshot["catalogs"]["plex-7"]], ["Feature"])
         self.assertNotIn("token", json.dumps(snapshot))
         self.assertNotIn("account-token", self.source.path.read_text())
         self.remote.offline = True
         self.source.running = self.source.saved
         self.source.update(self.source.saved)
-        self.assertTrue(self.snapshot()["sources"]["plex"]["error"])
-        self.assertEqual(self.snapshot()["catalogs"]["plex"], snapshot["catalogs"]["plex"])
+        self.assertTrue(self.snapshot()["sources"]["plex-7"]["error"])
+        self.assertEqual(self.snapshot()["catalogs"]["plex-7"], snapshot["catalogs"]["plex-7"])
         self.remote.offline = False
         flow = dict(self.sign_in(), server="home")
         self.source.action("libraries", flow)
         with patch("plex.film_rows", side_effect=OSError):
             with self.assertRaises(OSError):
                 self.source.action("connect", dict(flow, library="8"))
-        self.assertEqual(self.snapshot()["sources"]["plex"]["name"], "Festival picks")
+        self.assertEqual(self.snapshot()["sources"]["plex-7"]["name"], "Festival picks")
         self.source.action("connect", dict(flow, library="8"))
-        self.assertEqual(self.snapshot()["catalogs"]["plex"], [])
+        self.assertEqual(self.snapshot()["catalogs"]["plex-8"], [])
+        self.assertNotIn("plex-7", self.snapshot()["catalogs"])
         self.remote.owner = "someone-else"
         with self.assertRaises(plex.PlexError):
             self.sign_in()
@@ -151,3 +153,26 @@ class PlexTests(unittest.TestCase):
         self.source.action("disconnect", self.sign_in())
         self.assertFalse(self.source.path.exists())
         self.assertEqual(self.snapshot()["sources"], {})
+
+    def test_several_libraries_are_separate_sources(self):
+        flow = dict(self.sign_in(), server="home")
+        self.source.action("libraries", flow)
+        with self.assertRaises(plex.PlexError):
+            self.source.action("connect", dict(flow, library="7,9"))
+        self.source.action("connect", dict(flow, library="7,8"))
+        snapshot = self.snapshot()
+        self.assertEqual(snapshot["plex"]["libraries"], ["plex-7", "plex-8"])
+        self.assertEqual(snapshot["plex"]["server"], "Home Cinema")
+        self.assertEqual([snapshot["sources"][s]["name"] for s in ("plex-7", "plex-8")], ["Festival picks", "Family"])
+        self.assertEqual(len(snapshot["catalogs"]["plex-7"]), 1)
+
+    def test_single_library_file_from_before_is_read(self):
+        old = {"owner": "test-user", "server": {"name": "Home Cinema", "client": "c", "urls": [], "token": "t"},
+               "key": "7", "library": {"name": "Festival picks", "uuid": "seven"}, "connection": "abc",
+               "rows": [{"title": "Feature", "year": 1999}], "updated": 1, "attempted": 1, "error": ""}
+        self.source.path.write_text(json.dumps(old), encoding="utf-8")
+        self.source = plex.PlexSource(self.root, dict)
+        with patch.object(self.source, "refresh"):
+            snapshot = self.snapshot()
+        self.assertEqual(snapshot["plex"], {"server": "Home Cinema", "connection": "abc", "libraries": ["plex-7"]})
+        self.assertEqual(snapshot["catalogs"]["plex-7"], [{"title": "Feature", "year": 1999}])

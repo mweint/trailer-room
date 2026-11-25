@@ -2,8 +2,8 @@
 // decade and genre chips; the rating filter; the live film count, the summary under Up next and Clear filters.
 import {$, el, resize, reveal} from "../dom.js";
 import {refreshSource} from "../api.js";
-import {SOURCES, US_RATINGS, decadeOf, tally} from "../catalog.js";
-import {allFilms, enabled, fitsFilters, genreStatus, genresCollecting, genresOf, hidden, isLoaded, statusOf, syncCollections} from "../library.js";
+import {SOURCES, US_RATINGS, decadeOf, isPlex, tally} from "../catalog.js";
+import {allFilms, enabled, fitsFilters, genreStatus, genresCollecting, genresOf, hidden, isLoaded, plexConnection, statusOf, syncCollections} from "../library.js";
 import {pref, setPref, sourceEnabled, setSourceEnabled, savePrefs} from "../prefs.js";
 import {sourcesChanged} from "../playback/controller.js";
 
@@ -36,85 +36,69 @@ function failureNote(key, state) {
   return note;
 }
 
+// One source: a label holding the logo, name, count and switch, so a click anywhere on it flips the switch.
+// A label holds no other control, or it would hand its clicks to that control instead.
+function sourceRow(key, {name, logo: file}, focused) {
+  const label = el("label", "source");
+  const input = el("input");
+  const text = el("span", "source-details");
+  const total = allFilms().filter(f => f.sources.includes(key) && fitsFilters(f)).length;
+  const count = isLoaded(key) ? total.toLocaleString() + (total === 1 ? " film" : " films") : "Loading…";
+  text.append(el("span", "source-name", name), el("span", "count", count));
+  input.type = "checkbox";
+  input.checked = !!sourceEnabled(key);
+  input.dataset.source = key;
+  input.setAttribute("aria-label", name);
+  input.onchange = () => {
+    setSourceEnabled(key, input.checked);
+    changed();
+  };
+  const logo = el("img", "source-logo " + (isPlex(key) ? "plex" : key));
+  logo.alt = "";
+  logo.src = "/logos/" + file;
+  label.append(logo, text, input, el("span", "switch"));
+  if (focused === key) {
+    queueMicrotask(() => input.focus({preventScroll: true}));
+  }
+  const state = statusOf(key);
+  return state?.error ? [label, failureNote(key, state)] : [label];
+}
+
+function link(text, action) {
+  const button = el("button", "button button--link", text);
+  button.type = "button";
+  button.onclick = action;
+  return button;
+}
+
+// Curated sources first, then Plex as its own small group: the server is managed from the group's heading
+// and each library below it is an ordinary source row.
 function renderSources() {
   const focused = $("sources").contains(document.activeElement) ? document.activeElement.dataset.source : null;
-  $("sources").replaceChildren();
-  for (const [key, {name, logo: file}] of Object.entries(SOURCES)) {
-    // The label covers the logo, name, count and switch. Any other control (Plex's menu) sits beside the
-    // label, never inside it, or the label would hand its clicks to that control instead of the switch.
-    const row = el("div", "source");
-    const label = el("label", "source-label");
-    const input = el("input");
-    const text = el("span", "source-details");
-    const total = allFilms().filter(f => f.sources.includes(key) && fitsFilters(f)).length;
-    const count = isLoaded(key) ? total.toLocaleString() + (total === 1 ? " film" : " films") : "Loading…";
-    text.append(el("span", "source-name", name), el("span", "count", count));
-    input.type = "checkbox";
-    input.checked = !!sourceEnabled(key);
-    input.dataset.source = key;
-    input.setAttribute("aria-label", name);
-    input.onchange = () => {
-      setSourceEnabled(key, input.checked);
-      changed();
-    };
-    const logo = el("img", "source-logo " + key);
-    logo.alt = "";
-    logo.src = "/logos/" + file;
-    label.append(logo, text, input, el("span", "switch"));
-    row.append(label);
-    if (key === "plex") {
-      row.append(plexMenu());
-    }
-    $("sources").append(row);
-    const state = statusOf(key);
-    if (state?.error) {
-      $("sources").append(failureNote(key, state));
-    }
-    if (focused === key) {
-      input.focus({preventScroll: true});
+  const rows = [];
+  for (const [key, source] of Object.entries(SOURCES)) {
+    if (!isPlex(key)) {
+      rows.push(...sourceRow(key, source, focused));
     }
   }
-  if (!SOURCES.plex) {
+  const plex = plexConnection();
+  if (plex) {
+    const heading = el("div", "plex-heading");
+    heading.append(el("span", "plex-heading-name", "Plex · " + plex.server),
+      link("Change", () => plexActions.connectPlex()), link("Remove", () => plexActions.removePlex()));
+    rows.push(heading);
+    for (const key of plex.libraries) {
+      if (SOURCES[key]) {
+        rows.push(...sourceRow(key, SOURCES[key], focused));
+      }
+    }
+  } else {
     const add = el("button", "button button--flush source-add", "+ Connect Plex");
     add.type = "button";
     add.onclick = () => plexActions.connectPlex();
-    $("sources").append(add);
+    rows.push(add);
   }
-}
-
-// The Plex row's options: the library is managed where it is listed.
-function plexMenu() {
-  const menu = el("details", "menu source-menu");
-  const toggle = el("summary", "menu-toggle");
-  const list = el("div", "menu-list");
-  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  icon.setAttribute("class", "menu-toggle-icon");
-  icon.setAttribute("aria-hidden", "true");
-  icon.setAttribute("viewBox", "0 0 24 24");
-  for (const x of [5, 12, 19]) {
-    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    dot.setAttribute("cx", x);
-    dot.setAttribute("cy", 12);
-    dot.setAttribute("r", 1.7);
-    icon.append(dot);
-  }
-  toggle.append(icon);
-  toggle.setAttribute("aria-label", "Plex library options");
-  toggle.title = "Plex library options";
-  const change = el("button", "button menu-item", "Change library");
-  const remove = el("button", "button menu-item", "Remove library");
-  change.type = remove.type = "button";
-  change.onclick = () => {
-    menu.open = false;
-    plexActions.connectPlex();
-  };
-  remove.onclick = () => {
-    menu.open = false;
-    plexActions.removePlex();
-  };
-  list.append(change, remove);
-  menu.append(toggle, list);
-  return menu;
+  $("sources").replaceChildren(...rows);
 }
 
 function changed() {
@@ -221,13 +205,6 @@ export function renderProgramming() {
 export function initProgramming(showNotice, plex) {
   notice = showNotice;
   plexActions = plex;
-  // An open Plex menu closes on a click anywhere else.
-  document.addEventListener("click", event => {
-    const menu = $("sources").querySelector(".source-menu[open]");
-    if (menu && !menu.contains(event.target)) {
-      menu.open = false;
-    }
-  });
   for (const rating of US_RATINGS) {
     $("maxRating").add(new Option(rating, rating));
   }

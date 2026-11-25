@@ -32,7 +32,6 @@ Every colour, and every shared size, radius, font size and duration, is a token.
 | | `--video-ink` | `#f6f6f4` | Controls and text drawn on the picture |
 | | `--video-ink-contrast` | `#17181a` | Text on the play pill |
 | | `--video-scrim` | `#08090b` | Dock gradient base (used with alpha) |
-| | `--video-control-hover` | `#ffffff20` | Hover fill on the picture |
 | Space | `--space-1 … --space-8` | `.25 .5 .75 1 1.5 2rem` | All gaps and padding |
 | Size | `--control` | `2.25rem` | Pointer control height |
 | | `--control-touch` | `2.75rem` | Coarse-pointer and dialog control height |
@@ -93,6 +92,8 @@ Every piece of text has one role, and each role has one size, weight and colour.
 - **Labels align to the column; fills bleed.** A button whose label must line up with a column edge (queue rows, the sources toggle, More) uses `.button--flush`: it keeps its padding and takes an equal negative margin, so the hover fill extends past the column instead of the text sitting off it. A scroll box around flush rows pads by the same inset and cancels it with a negative margin, so the fill is not clipped; on the scrollbar side it pads one inset more, so fills never run under a scrollbar. A row with a thumbnail uses the same inset on every side of it, and its corners are concentric with the thumbnail's (outer radius ≈ inner radius + inset).
 - **The sidebar is Up next only.** Its heading is followed by one summary line of what Programming lets through, which opens the Programming sheet. Beside the player the list ends level with the bottom of the picture, so both columns share one edge.
 - **Queue rows** span the column. Remove (×) sits at the right end, shows on hover or focus and always on touch, and takes the film out of the current round only; Hide movie in the film options is the lasting version.
+- **Plex** is one server and any number of its film libraries. Each library is its own source (`plex-<library key>`) with its own switch, count and status; the server is managed from the group heading, and the picker offers a switch per library.
+- **Every clickable thing sets its own cursor.** A row that is a label is the label itself, so the whole row, switch included, shows one pointer; nothing inherits a cursor from a non-clickable parent.
 - One file per component or feature. A feature file may hold several closely tied roots (`screen.css`: `.display`, `.screen`, `.start`; `dock.css`: `.dock`, `.transport`, `.view-tools`, `.wake-surface`). Formatted one declaration per line.
 - `base.css` holds the reset, element defaults, `.icon` and `.sr-only`. `layout.css` holds the page grid (`.page`, `.theater`, `.sidebar`), theater mode and the page breakpoints.
 - Breakpoints: page at `54rem` and `36rem`; player at container width `30rem`; touch via `(pointer: coarse)`. Motion respects `prefers-reduced-motion`.
@@ -103,7 +104,7 @@ Primitives (`web/css/components/`), reused everywhere:
 
 | Component | Class | Variants |
 | --- | --- | --- |
-| Button | `.button` | `--icon` (every icon-only button, always round), `--outline` (dialog actions), `--link` (inline retry, More), `--on-video`, `--flush` (aligned to the column; padding set by `--button-inset`) |
+| Button | `.button` | `--icon` (every icon-only button on the page, always round), `--outline` (dialog actions), `--link` (inline retry, More), `--on-video` (on the picture: no fill and no shape, dimmed at rest and bright on hover, as in YouTube's player, so icon and labelled buttons read the same; a pressed tool keeps its bar underneath), `--flush` (aligned to the column; padding set by `--button-inset`) |
 | Switch | `.switch` | — |
 | Range | `.range` | timeline, volume |
 | Select | `.select` | Native select with its arrow replaced by a chevron, inset from the right edge by the same `--space-3` as the text from the left |
@@ -124,7 +125,7 @@ Features (`web/css/features/` and `web/js/ui/`). Each has a CSS file; the module
 | Dock | `.dock` | `dock.js`, `transport.js` | Auto-hide and view tools; title, timeline, transport buttons, volume |
 | Film info | `.film-info` | `film-info.js` | Title, credit, facts, description (three lines, More), film options menu |
 | Queue | `.queue` | `queue.js` | Up-next list, poster loading as rows scroll into view, list height |
-| Programming | `.programming` (a sheet) | `programming.js`, `preferences.js`, `plex.js` | Everything about what plays, in groups divided by hairlines: Sources (rows with status and retry; Plex is managed from a ⋯ menu on its own row, or a "+ Connect Plex" row when absent), Decade, Genre (with "Still collecting" progress while the server's pass runs), Rating, then Hidden movies and Skipped trailers folded into one row each with a count. Live film count, Clear filters when nothing matches. Opened from the masthead button and the summary line under Up next. |
+| Programming | `.programming` (a sheet) | `programming.js`, `preferences.js`, `plex.js` | Everything about what plays, in groups divided by hairlines: Sources (rows with status and retry; then Plex as its own group: a heading naming the server with Change and Remove links, and one ordinary source row per connected library, or a "+ Connect Plex" row when none), Decade, Genre (with "Still collecting" progress while the server's pass runs), Rating, then Hidden movies and Skipped trailers folded into one row each with a count. Live film count, Clear filters when nothing matches. Opened from the masthead button and the summary line under Up next. |
 
 `theater.js` (theater mode, fullscreen; styled in `layout.css`) and `shortcuts.js` have no CSS file of their own.
 

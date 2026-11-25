@@ -1,6 +1,6 @@
 // The loaded library: source catalogs, merged films, source status, film detail cache and polling. No DOM.
 import {fetchCollections, fetchFilm} from "./api.js";
-import {SOURCES, addSource, removeSource, mergeSources, withinRating, withinDecades, withinGenres} from "./catalog.js";
+import {SOURCES, addSource, removeSource, isPlex, mergeSources, withinRating, withinDecades, withinGenres} from "./catalog.js";
 import {pref, sourceEnabled, enableSourceByDefault} from "./prefs.js";
 
 const catalogs = {};
@@ -10,11 +10,12 @@ let films = [];
 let sourceStatus = {};
 let genres = {};
 let genreProgress = null;
+let plex = null;
 let pollTimer;
 let syncVersion = 0;
 let hooks;
 
-// hooks: plexStatus(source), changed(), unchanged(), notice(message)
+// hooks: plexStatus({server, connection, libraries} or null), changed(), unchanged(), notice(message)
 export function onSync(syncHooks) {
   hooks = syncHooks;
 }
@@ -52,6 +53,11 @@ export function detail(film) {
     }));
   }
   return details.get(film.key);
+}
+
+// The connected Plex server: {server, connection, libraries: ["plex-<key>", ...]}, or null.
+export function plexConnection() {
+  return plex;
 }
 
 // The server's genre pass: {done, total} films checked, or null when the server does not say.
@@ -95,19 +101,21 @@ export async function syncCollections(force = false) {
       genreCount !== Object.keys(genres).length;
     genres = data.genres || {};
     genreProgress = data.genreProgress || null;
-    if (data.sources.plex) {
-      addSource("plex", {
-        name: "Plex · " + data.sources.plex.name,
-        short: data.sources.plex.name,
-        logo: "plex.svg"
-      });
-      enableSourceByDefault("plex");
-    } else {
-      removeSource("plex");
-      delete catalogs.plex;
-      loaded.delete("plex");
+    // Each connected Plex library is its own source, "plex-<key>"; the rest go when they are disconnected.
+    const plexLibraries = data.plex?.libraries || [];
+    for (const key of Object.keys(SOURCES)) {
+      if (isPlex(key) && !plexLibraries.includes(key)) {
+        removeSource(key);
+        delete catalogs[key];
+        loaded.delete(key);
+      }
     }
-    hooks.plexStatus(data.sources.plex);
+    for (const key of plexLibraries) {
+      addSource(key, {name: data.sources[key].name, short: "Plex", logo: "plex.svg"});
+      enableSourceByDefault(key);
+    }
+    plex = data.plex || null;
+    hooks.plexStatus(plex);
     sourceStatus = data.sources;
     Object.assign(catalogs, data.catalogs);
     for (const [key, state] of Object.entries(sourceStatus)) {

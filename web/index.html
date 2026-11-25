@@ -138,9 +138,9 @@
       <section class="plex-settings" aria-label="Plex library">
         <form id="plexPicker" class="plex-picker collapse" hidden>
           <label for="plexServer">Server</label><select id="plexServer" class="select"></select>
-          <label for="plexLibrary">Library</label><select id="plexLibrary" class="select"></select>
+          <fieldset class="plex-libraries"><legend>Libraries</legend><div id="plexLibraries"></div></fieldset>
           <p>Anyone who opens this Trailer Room can see titles from the selected library.</p>
-          <div class="plex-actions"><button id="plexSave" class="button button--outline" type="submit" disabled>Use this library</button>
+          <div class="plex-actions"><button id="plexSave" class="button button--outline" type="submit" disabled>Use these libraries</button>
             <button id="plexCancel" class="button button--outline" type="button">Cancel</button></div>
         </form>
         <p id="plexMessage" class="plex-message" role="status"></p>

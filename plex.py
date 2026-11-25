@@ -1,4 +1,5 @@
-"""Optional installation-wide Plex film source. Only discovery-issued server tokens persist."""
+"""Optional installation-wide Plex film sources: one Plex server, any number of its film libraries, each its own
+source ("plex-<library key>"). Only discovery-issued server tokens persist."""
 
 import hashlib
 import json
@@ -67,7 +68,7 @@ def sections(server):
 def film_rows(server, key, library):
     url, libraries = sections(server)
     if key not in libraries or (library["uuid"] and libraries[key]["uuid"] != library["uuid"]):
-        raise PlexError("This library is no longer available. Choose a library again in Preferences.")
+        raise PlexError("This library is no longer available. Choose your libraries again under Programming.")
     rows = {}
     offset = 0
     while True:
@@ -108,6 +109,14 @@ def choices(mapping):
                   key=lambda item: item["name"].casefold())
 
 
+def as_libraries(data):
+    """Saved connections from before several libraries were possible hold one library at the top level."""
+    if data and "libraries" not in data and "key" in data:
+        data = dict(data)
+        data["libraries"] = [{field: data.pop(field) for field in ("key", "library", "rows", "updated", "attempted", "error")}]
+    return data
+
+
 class PlexSource:
     def __init__(self, directory, register):
         self.path = Path(directory) / "plex-library.json"
@@ -116,10 +125,13 @@ class PlexSource:
         self.flows = {}
         self.running = None
         try:
-            self.saved = json.loads(self.path.read_text("utf-8"))
+            self.saved = as_libraries(json.loads(self.path.read_text("utf-8")))
         except FileNotFoundError:
             self.saved = None
-        self.rows = [register(row) for row in self.saved["rows"]] if self.saved else []
+        self.rows = self.registered(self.saved)
+
+    def registered(self, data):
+        return {item["key"]: [self.register(row) for row in item["rows"]] for item in data["libraries"]} if data else {}
 
     def write(self, data):
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -148,14 +160,15 @@ class PlexSource:
 
     def connection_id(self):
         data = self.saved
-        return data.get("connection") or hashlib.sha256((data["server"]["client"] + "/" + data["key"]).encode()).hexdigest()
+        return data.get("connection") or hashlib.sha256(
+            (data["server"]["client"] + "/" + data["libraries"][0]["key"]).encode()).hexdigest()
 
     def remove(self, expected):
         # Caller holds self.lock. Invalidate pending imports and refreshes as well.
         if self.saved and expected and expected != self.connection_id():
-            raise PlexError("The selected library changed. Reload before removing it.")
+            raise PlexError("The Plex connection changed. Reload before removing it.")
         self.path.unlink(missing_ok=True)
-        self.saved, self.rows, self.running = None, [], None
+        self.saved, self.rows, self.running = None, {}, None
         self.flows.clear()
 
     def action(self, action, body, device_key=""):
@@ -203,21 +216,25 @@ class PlexSource:
                 _, libraries = sections(server)
                 flow.setdefault("libraries", {})[body["server"]] = libraries
                 return {"libraries": choices(libraries)}
-            key = body.get("library")
+            # "library" is one library key, or several separated by commas.
+            keys = list(dict.fromkeys(k for k in body.get("library", "").split(",") if k))
             offered = flow.get("libraries", {}).get(body["server"], {})
-            if action != "connect" or key not in offered:
-                raise PlexError("Choose a library from the list.")
-            library, rows = film_rows(server, key, offered[key])
+            if action != "connect" or not keys or any(key not in offered for key in keys):
+                raise PlexError("Choose at least one library from the list.")
             now = int(time.time())
+            imported = []
+            for key in keys:
+                library, rows = film_rows(server, key, offered[key])
+                imported.append({"key": key, "library": library, "rows": rows, "updated": now, "attempted": now,
+                                 "error": ""})
             with self.lock:
                 self.check_owner(flow["owner"])
                 if self.flows.get(ticket) is not flow:
                     raise PlexError("The connection changed. Start again.")
                 device_key = secrets.token_urlsafe(32)
-                self.write({"owner": flow["owner"], "server": server, "key": key, "library": library,
-                            "connection": uuid4().hex, "device_hash": hashlib.sha256(device_key.encode()).hexdigest(),
-                            "rows": rows, "updated": now, "attempted": now, "error": ""})
-                self.rows = [self.register(row) for row in rows]
+                self.write({"owner": flow["owner"], "server": server, "connection": uuid4().hex,
+                            "device_hash": hashlib.sha256(device_key.encode()).hexdigest(), "libraries": imported})
+                self.rows = self.registered(self.saved)
                 self.running = None
                 self.flows.clear()
             return {"device_key": device_key}
@@ -229,29 +246,36 @@ class PlexSource:
     def refresh(self, manual=False):
         with self.lock:
             data = self.saved
-            if not data or self.running or (not manual and (time.time() - data["updated"] < 86400 or
-                                                           time.time() - data["attempted"] < 3600)):
+            if not data or self.running or (not manual and all(
+                    time.time() - item["updated"] < 86400 or time.time() - item["attempted"] < 3600
+                    for item in data["libraries"])):
                 return
             self.running = data
             Thread(target=self.update, args=(data,), daemon=True).start()
 
     def update(self, data):
         now = int(time.time())
-        result = dict(data, attempted=now)
-        try:
-            library, rows = film_rows(data["server"], data["key"], data["library"])
-            result.update(library=library, rows=rows, updated=now, error="")
-        except (PlexError, OSError, ValueError, TypeError, KeyError) as exc:
-            result["error"] = str(exc) if isinstance(exc, PlexError) else "Could not update the Plex library."
+        libraries = []
+        for item in data["libraries"]:
+            result = dict(item, attempted=now)
+            try:
+                library, rows = film_rows(data["server"], item["key"], item["library"])
+                result.update(library=library, rows=rows, updated=now, error="")
+            except (PlexError, OSError, ValueError, TypeError, KeyError) as exc:
+                result["error"] = str(exc) if isinstance(exc, PlexError) else "Could not update the Plex library."
+            libraries.append(result)
         with self.lock:
             if self.running is not data:
                 return
+            result = dict(data, libraries=libraries)
             try:
                 self.write(result)
-                if not result["error"]:
-                    self.rows = [self.register(row) for row in result["rows"]]
+                # A library that failed keeps its last good rows.
+                self.rows = {item["key"]: (self.rows.get(item["key"], []) if item["error"] else
+                                           [self.register(row) for row in item["rows"]]) for item in libraries}
             except OSError:
-                self.saved = dict(data, attempted=now, error="Cannot write the local cache.")
+                self.saved = dict(data, libraries=[dict(item, attempted=now, error="Cannot write the local cache.")
+                                                   for item in data["libraries"]])
             finally:
                 self.running = None
 
@@ -259,9 +283,11 @@ class PlexSource:
         self.refresh()
         with self.lock:
             if self.saved:
-                snapshot["catalogs"]["plex"] = self.rows
-                snapshot["sources"]["plex"] = {k: self.saved[k] for k in ("updated", "attempted", "error")}
-                snapshot["sources"]["plex"].update(name=self.saved["library"]["name"], server=self.saved["server"]["name"],
-                                                   connection=self.connection_id(),
-                                                   refreshing=self.running is not None)
+                snapshot["plex"] = {"server": self.saved["server"]["name"], "connection": self.connection_id(),
+                                    "libraries": ["plex-" + item["key"] for item in self.saved["libraries"]]}
+                for item in self.saved["libraries"]:
+                    source = "plex-" + item["key"]
+                    snapshot["catalogs"][source] = self.rows.get(item["key"], [])
+                    snapshot["sources"][source] = {k: item[k] for k in ("updated", "attempted", "error")}
+                    snapshot["sources"][source].update(name=item["library"]["name"], refreshing=self.running is not None)
         return snapshot

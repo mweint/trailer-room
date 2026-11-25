@@ -210,8 +210,10 @@
       font: 500 var(--text-meta)/1.25 var(--font-ui);
     }
 
+    /* The popover is a page surface, not the picture, so its buttons take the page's fill. */
+    .view-tools .view-button:hover:enabled,
     .view-tools .view-button[aria-pressed=true] {
-      background: var(--video-control-hover);
+      background: var(--color-hover);
     }
 
     .view-tools .view-button[aria-pressed=true]::after {

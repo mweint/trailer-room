@@ -6,7 +6,11 @@ export const SOURCES = {
   neon: {name: "NEON", logo: "neon.svg"}
 };
 
-// The Plex source exists only while a library is connected.
+// Plex sources ("plex-<library key>") exist only while their library is connected.
+export function isPlex(key) {
+  return key.startsWith("plex-");
+}
+
 export function addSource(key, source) {
   SOURCES[key] = source;
 }
@@ -18,7 +22,7 @@ export function removeSource(key) {
 export const US_RATINGS = ["G", "PG", "PG-13", "R", "NC-17"];
 
 export function sourceNames(film) {
-  return film.sources.map(s => SOURCES[s].short || SOURCES[s].name).join(" / ");
+  return [...new Set(film.sources.map(s => SOURCES[s].short || SOURCES[s].name))].join(" / ");
 }
 
 export function withinRating(film, maximum, includeUnrated = !maximum) {

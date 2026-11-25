@@ -67,10 +67,13 @@
   margin-inline: calc(-1 * var(--button-inset));
 }
 
+/* On the picture a button has no fill and no shape, as in YouTube's player: it rests slightly dimmed and
+   brightens on hover, so icon-only and labelled buttons (Next film) read the same. Round fills are for the page. */
 .button--on-video {
-  color: var(--video-ink);
+  color: color-mix(in srgb, var(--video-ink) 82%, transparent);
 }
 
 .button--on-video:hover:enabled {
-  background: var(--video-control-hover);
+  background: transparent;
+  color: var(--color-highlight);
 }

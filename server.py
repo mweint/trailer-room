@@ -364,7 +364,8 @@ class Handler(BaseHTTPRequestHandler):
                 or self.headers.get("Content-Type") != "application/json"
                 or self.headers.get("Origin") not in (None, "http://" + host, "https://" + host)):
             return self.data({"error": "Invalid refresh request."}, 403)
-        if self.path == "/api/refresh/plex":
+        # Plex libraries ("plex-<key>") refresh together, as they come from one server.
+        if self.path == "/api/refresh/plex" or self.path.startswith("/api/refresh/plex-"):
             plex.refresh(manual=True)
             return self.data({"accepted": True}, 202)
         if self.path.startswith("/api/plex/"):
