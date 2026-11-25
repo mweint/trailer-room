@@ -94,8 +94,8 @@ function renderSources() {
   $("sources").replaceChildren();
   for (const [key, {name, logo: file}] of Object.entries(SOURCES)) {
     const label = el("label", "source"), input = el("input"), text = el("span","source-details");
-    const count = loaded.has(key) ?
-      films.filter(f => f.sources.includes(key) && withinRating(f, prefs.maxRating)).length.toLocaleString() + " films" : "Loading…";
+    const total = films.filter(f => f.sources.includes(key) && withinRating(f, prefs.maxRating)).length;
+    const count = loaded.has(key) ? total.toLocaleString() + (total === 1 ? " film" : " films") : "Loading…";
     text.append(el("span", "source-name", name), el("span", "count", count));
     input.type = "checkbox"; input.checked = !!prefs.enabled[key]; input.dataset.source = key; input.setAttribute("aria-label", name);
     input.onchange = () => { prefs.enabled[key] = input.checked; save(); sourcesChanged(); };
