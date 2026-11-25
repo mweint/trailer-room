@@ -73,21 +73,30 @@ function renderQueue() {
     text.append(el("span", "queue-title", film.title), el("span", "queue-sub", film.year));
     button.append(text); button.onclick = () => skipTo(film); li.append(button); $("queue").append(li);
   }
-  $("queueEmpty").textContent = queue.length || pending ? "" : "No more films in this queue.";
+  $("queueEmpty").textContent = queue.length || pending ? "" :
+    Object.values(prefs.enabled).some(Boolean) ? "No more films in this queue." : "Select a film source to build your queue.";
   fitQueuePreview();
 }
 function fitQueuePreview() {
   const list = $("queue");
-  const extra = Array.from(list.children).slice(4);
-  if (!extra.length) return;
+  const preview = list.parentElement;
   const besidePlayer = matchMedia("(width > 54rem)").matches && !layout.classList.contains("theater-mode");
-  for (const row of extra) row.hidden = !besidePlayer;
-  if (!besidePlayer) return;
-  // Keep the source switches in view. Measure actual rows so long titles and browser zoom count.
-  const belowQueue = list.closest("aside").getBoundingClientRect().bottom - list.getBoundingClientRect().bottom;
-  const limit = innerHeight - scrollY - belowQueue - parseFloat(getComputedStyle(layout).paddingBottom);
-  const bottoms = extra.map(row => row.getBoundingClientRect().bottom);
-  extra.forEach((row, index) => { row.hidden = bottoms[index] > limit; });
+  let slots = 4;
+  if (besidePlayer) {
+    const aside = list.closest("aside");
+    const below = aside.querySelector(".sources").getBoundingClientRect().height +
+      parseFloat(getComputedStyle(aside).rowGap) + parseFloat(getComputedStyle(layout).paddingBottom);
+    const available = innerHeight - (preview.getBoundingClientRect().top + scrollY) - below;
+    const rowHeight = parseFloat(getComputedStyle(preview).minHeight) / 4;
+    slots = Math.max(4, Math.min(12, Math.floor(available / rowHeight)));
+  }
+  preview.style.setProperty("--queue-rows", slots);
+  const extra = Array.from(list.children).slice(4);
+  extra.forEach((row, i) => { row.hidden = i + 4 >= slots; });
+  // Wrapped titles can consume more than one slot.
+  const limit = list.getBoundingClientRect().top + preview.clientHeight;
+  const overflow = extra.filter(row => !row.hidden && row.getBoundingClientRect().bottom > limit + .5);
+  for (const row of overflow) row.hidden = true;
 }
 function renderSources() {
   const focused = $("sources").contains(document.activeElement) ? document.activeElement.dataset.source : null;
@@ -140,10 +149,24 @@ function sourcesChanged() {
 }
 function renderFilm() {
   if (!current || !clip) return;
-  $("title").textContent = current.title;
+  const imdb = info?.imdb || current.imdb;
+  const directPath = /^tt\d+$/.test(imdb) ? "imdb/" + imdb :
+    /^\d+$/.test(current.tmdb) ? "tmdb/" + current.tmdb : "";
+  const query = [current.title, current.year && "year:" + current.year].filter(Boolean).join(" ");
+  const href = "https://letterboxd.com/" + (directPath || "search/films/" + encodeURIComponent(query) + "/");
+  for (const id of ["title", "filmTitle"]) {
+    const heading = $(id);
+    const link = heading.firstElementChild || el("a");
+    if (link.href !== href || link.textContent !== current.title) {
+      link.href = href; link.textContent = current.title;
+      link.target = "_blank"; link.rel = "noopener noreferrer";
+      link.title = directPath ? "View on Letterboxd (new tab)" : "Search Letterboxd (new tab)";
+      link.setAttribute("aria-label", current.title + " — " + link.title);
+    }
+    if (!link.parentNode) heading.replaceChildren(link);
+  }
   $("filmInfo").hidden = false;
   $("filmInfo").setAttribute("aria-busy","false");
-  $("filmTitle").textContent = current.title;
   $("credit").textContent = info?.directors?.length ? "Directed by " + info.directors.join(" & ") : "";
   const likes = clip?.likes != null ? new Intl.NumberFormat(undefined, {notation:"compact"}).format(clip.likes) + " trailer likes" : "";
   $("meta").textContent = [current.year, current.certification, info?.runtime, info?.genres?.slice(0,2).join(", "), sourceNames(current)]
@@ -186,6 +209,7 @@ function resetPlayer(keepYouTube = false) {
   for (const id of ["timeline","volume","mute","cc"]) $(id).disabled = true;
 }
 function clearScreen(keepYouTube = false) {
+  $("moreControls").setAttribute("aria-expanded", "false");
   $("filmOptions").open = false;
   current = info = clip = null; resetPlayer(keepYouTube);
   for (const id of ["alternate","hide","play","next"]) $(id).disabled = true;
@@ -529,11 +553,11 @@ new ResizeObserver(sizeTube).observe($("screen"));
 $("crt").onclick = () => {prefs.crt = !prefs.crt; applyTube(); save();};
 function scheduleControlsHide() {
   clearTimeout(idleTimer);
-  if (playing && !$("stage").classList.contains("controls-hidden") && !adjustingControl && !(keyboardControl && $("dock").contains(document.activeElement))) {
+  if (playing && !$("stage").classList.contains("controls-hidden") && !adjustingControl && $("moreControls").getAttribute("aria-expanded") !== "true" && !(keyboardControl && $("dock").contains(document.activeElement))) {
     idleTimer = setTimeout(() => {
       if (document.hasFocus() && $("dock").contains(document.activeElement)) $("stage").focus({preventScroll:true});
       $("stage").classList.add("controls-hidden");
-    }, 2400);
+    }, matchMedia("(pointer: coarse)").matches ? 4000 : 2400);
   }
 }
 // Key events inside a provider iframe never bubble to this page. Return keyboard
@@ -549,6 +573,19 @@ function showControls() {
   $("stage").classList.remove("controls-hidden");
   scheduleControlsHide();
 }
+$("moreControls").onclick = () => {
+  const button = $("moreControls");
+  button.setAttribute("aria-expanded", String(button.getAttribute("aria-expanded") !== "true"));
+  showControls();
+};
+function closeViewTools() {
+  if ($("moreControls").getAttribute("aria-expanded") !== "true") return;
+  if ($("viewTools").contains(document.activeElement)) $("moreControls").focus({preventScroll:true});
+  $("moreControls").setAttribute("aria-expanded", "false");
+  scheduleControlsHide();
+}
+document.addEventListener("click", e => { if (!$("moreControls").contains(e.target)) closeViewTools(); });
+window.addEventListener("resize", closeViewTools);
 const layout = $("theater").closest("main");
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 let sizeMotion, sidebarMotion;
@@ -656,6 +693,7 @@ $("preferences").onclick = () => {preferences();$("settings").showModal();};
 $("close").onclick = () => $("settings").close();
 document.addEventListener("keydown",e=>{
   const key = e.key.toLowerCase();
+  if (key === "escape" && $("moreControls").getAttribute("aria-expanded") === "true") { closeViewTools(); return; }
   if ($("filmOptions").open && key === "escape") {
     $("filmOptions").open = false;
     $("filmOptions").querySelector("summary").focus();

@@ -1,8 +1,8 @@
 export const SOURCES = {
-  criterion: {name: "Criterion Collection", short: "Criterion", logo: "criterion.png"},
   a24: {name: "A24", logo: "a24.svg"},
-  neon: {name: "NEON", logo: "neon.svg"},
-  janus: {name: "Janus Films", logo: "janus.png"}
+  criterion: {name: "Criterion Collection", short: "Criterion", logo: "criterion.png"},
+  janus: {name: "Janus Films", logo: "janus.png"},
+  neon: {name: "NEON", logo: "neon.svg"}
 };
 
 export const US_RATINGS = ["G", "PG", "PG-13", "R", "NC-17"];
