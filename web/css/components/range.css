@@ -1,0 +1,91 @@
+/* Range: the one slider. Variants: --timeline, --volume. JavaScript sets --fill to the played or chosen fraction. */
+.range {
+  --range-track: 3px;
+  --range-thumb: 10px;
+  --range-rest: color-mix(in srgb, var(--color-text-muted) 65%, transparent);
+  --range-off: color-mix(in srgb, var(--color-text-muted) 38%, transparent);
+  accent-color: var(--video-ink);
+  cursor: pointer;
+}
+
+.range--timeline {
+  --range-height: 12px;
+  display: block;
+  width: 100%;
+  height: var(--range-height);
+  margin: var(--space-1) 0 0;
+}
+
+.range--timeline:disabled {
+  visibility: hidden;
+}
+
+.range--volume {
+  --range-height: 15px;
+  --range-width: clamp(2.5rem, 5vw, 4.5rem);
+  width: var(--range-width);
+  height: var(--range-height);
+  margin: 0 var(--space-2) 0 0;
+}
+
+@media (forced-colors: none) {
+  .range {
+    appearance: none;
+    padding: 0;
+    border: 0;
+    background: linear-gradient(to right, var(--video-ink) var(--fill, 0%), var(--range-rest) var(--fill, 0%)) center / 100% var(--range-track) no-repeat;
+  }
+
+  .range::-webkit-slider-thumb {
+    appearance: none;
+    width: var(--range-thumb);
+    height: var(--range-thumb);
+    border-radius: var(--radius-pill);
+    background: var(--video-ink);
+  }
+
+  .range::-moz-range-track {
+    background: transparent;
+  }
+
+  .range::-moz-range-thumb {
+    width: var(--range-thumb);
+    height: var(--range-thumb);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--video-ink);
+  }
+
+  .range--timeline:disabled {
+    visibility: visible;
+    pointer-events: none;
+    background: linear-gradient(var(--range-off), var(--range-off)) center / 100% var(--range-track) no-repeat;
+  }
+
+  .range--timeline:disabled::-webkit-slider-thumb {
+    opacity: 0;
+  }
+
+  .range--timeline:disabled::-moz-range-thumb {
+    opacity: 0;
+  }
+}
+
+@media (pointer: coarse) {
+  .range--timeline {
+    height: var(--control-touch);
+    margin-top: 0;
+    touch-action: pan-y;
+  }
+
+  .range--volume {
+    display: none;
+  }
+}
+
+@container theater (max-width: 30rem) {
+  .range--volume {
+    width: var(--space-8);
+    margin: 0;
+  }
+}

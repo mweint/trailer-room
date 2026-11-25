@@ -1,0 +1,14 @@
+/* Panel heading: a section title with an optional count or action on the right. */
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.panel-title {
+  font-size: var(--text-section);
+  line-height: 1.5rem;
+  letter-spacing: -.02em;
+  font-weight: 600;
+}

@@ -1,0 +1,72 @@
+/* Queue: the up-next list. JavaScript sets --queue-rows to the number of rows that fit beside the player. */
+.queue {
+  --poster-width: 38px;
+  --poster-height: 56px;
+  --queue-row-height: calc(var(--poster-height) + 2 * var(--space-1));
+  --queue-sub-offset: 2px;
+}
+
+.queue-count {
+  color: var(--color-text-muted);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-preview {
+  min-height: calc(4 * var(--queue-row-height));
+  height: calc(var(--queue-rows, 4) * var(--queue-row-height));
+  margin-top: var(--space-2);
+  overflow-y: auto;
+}
+
+.queue-list {
+  padding: 0;
+  list-style: none;
+}
+
+.queue-empty {
+  color: var(--color-text-muted);
+}
+
+.queue-row {
+  width: 100%;
+  padding: var(--space-1) 0;
+  gap: var(--space-3);
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.queue-row img,
+.poster {
+  width: var(--poster-width);
+  height: var(--poster-height);
+  object-fit: cover;
+  flex: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-placeholder);
+}
+
+.poster {
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+}
+
+.queue-title,
+.queue-sub {
+  display: block;
+}
+
+.queue-title {
+  font-size: var(--text-body);
+  line-height: 1.25rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.queue-sub {
+  margin-top: var(--queue-sub-offset);
+  color: var(--color-text-muted);
+  font-size: var(--text-meta);
+  line-height: 1.125rem;
+}

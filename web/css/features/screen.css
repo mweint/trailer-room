@@ -1,0 +1,123 @@
+/* Screen: the letterbox frame (.display), the 16:9 picture (.screen), artwork, embed, cover and play pill. */
+.display {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  container-type: size;
+  background: var(--video-black);
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  isolation: isolate;
+}
+
+.screen {
+  position: relative;
+  isolation: isolate;
+  width: min(100cqw, calc(100cqh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--video-black);
+}
+
+[data-theater] .display {
+  --display-min-height: 12rem;
+  --display-page-chrome: 7rem;
+  max-height: max(var(--display-min-height), calc(100svh - var(--display-page-chrome)));
+  border-radius: 0;
+}
+
+.theater:is(:fullscreen, [data-expanded]) .display {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  width: 100%;
+  margin: 0;
+  border-radius: 0;
+}
+
+.screen-art,
+.screen-embed,
+.screen-embed iframe,
+.screen-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* JavaScript sets --art to the current film's artwork. */
+.screen-art {
+  background: var(--color-surface) center / cover no-repeat;
+  background-image: var(--art, none);
+}
+
+.screen-cover {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.screen-cue:empty + .spinner {
+  display: none;
+}
+
+/* The play button covers the whole picture; the pill is only its visible part. */
+.start {
+  --start-shadow: 0 2px 15px color-mix(in srgb, var(--video-black) 27%, transparent);
+  --start-focus-halo: 0 0 0 6px var(--color-highlight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: var(--space-1) var(--space-3);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: var(--text-ui);
+  pointer-events: auto;
+}
+
+.start-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-touch);
+  padding: 0 var(--space-4);
+  color: var(--video-ink-contrast);
+  background: var(--video-ink);
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--start-shadow);
+}
+
+.start:hover:enabled .start-pill {
+  background: var(--color-highlight);
+}
+
+.start:focus-visible {
+  outline: none;
+}
+
+.start:focus-visible .start-pill {
+  outline: 2px solid var(--video-ink-contrast);
+  outline-offset: 2px;
+  box-shadow: var(--start-focus-halo);
+}
+
+.start:disabled {
+  cursor: progress;
+}
+
+@media (pointer: coarse) {
+  .start {
+    touch-action: manipulation;
+  }
+}

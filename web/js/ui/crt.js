@@ -1,7 +1,12 @@
+// CRT effect: the baked beam texture, tube sizing and the toggle. State is data-crt on the screen.
+import {$} from "../dom.js";
+import {pref, setPref, savePrefs} from "../prefs.js";
+
 // Bake one physical RGB stripe and one scanline period. The browser composites this
 // tile over the live iframe, so the player never copies or reads a video frame.
 const textures = new Map();
-let gl, program;
+let gl;
+let program;
 
 function createProgram(context) {
   const vertex = `#version 300 es
@@ -30,18 +35,26 @@ function createProgram(context) {
     context.deleteShader(shader);
   }
   context.linkProgram(result);
-  if (context.getProgramParameter(result, context.LINK_STATUS)) return result;
+  if (context.getProgramParameter(result, context.LINK_STATUS)) {
+    return result;
+  }
   context.deleteProgram(result);
   return null;
 }
 
-export function beamTexture(pitch) {
-  if (textures.has(pitch)) return textures.get(pitch);
+function beamTexture(pitch) {
+  if (textures.has(pitch)) {
+    return textures.get(pitch);
+  }
   if (gl === undefined) {
     gl = document.createElement("canvas").getContext("webgl2", {alpha: false, antialias: false, depth: false});
-    if (gl) program = createProgram(gl);
+    if (gl) {
+      program = createProgram(gl);
+    }
   }
-  if (!program || gl.isContextLost()) return null;
+  if (!program || gl.isContextLost()) {
+    return null;
+  }
   gl.canvas.width = 3;
   gl.canvas.height = pitch;
   gl.viewport(0, 0, 3, pitch);
@@ -51,4 +64,35 @@ export function beamTexture(pitch) {
   const url = gl.canvas.toDataURL();
   textures.set(pitch, url);
   return url;
+}
+
+function sizeTube() {
+  if (!pref("crt")) {
+    return;
+  }
+  const screen = $("screen");
+  const dpr = window.devicePixelRatio || 1;
+  const pitch = Math.max(2, Math.round(screen.clientHeight * dpr / 420));
+  screen.style.setProperty("--beam", pitch / dpr + "px");
+  screen.style.setProperty("--triad", 3 / dpr + "px");
+  const texture = beamTexture(pitch);
+  if (texture) {
+    screen.style.setProperty("--tube-texture", 'url("' + texture + '")');
+  }
+}
+
+function applyTube() {
+  $("screen").toggleAttribute("data-crt", pref("crt"));
+  $("crt").setAttribute("aria-pressed", String(pref("crt")));
+  sizeTube();
+}
+
+export function initCrt() {
+  applyTube();
+  new ResizeObserver(sizeTube).observe($("screen"));
+  $("crt").onclick = () => {
+    setPref("crt", !pref("crt"));
+    applyTube();
+    savePrefs();
+  };
 }

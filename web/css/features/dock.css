@@ -1,0 +1,249 @@
+/* Dock: title, timeline, transport and view tools drawn over the picture, with auto-hide. */
+.dock {
+  --dock-scrim: linear-gradient(transparent, color-mix(in srgb, var(--video-scrim) 85%, transparent) 45%, color-mix(in srgb, var(--video-scrim) 95%, transparent));
+  --dock-scrim-preview: linear-gradient(transparent, color-mix(in srgb, var(--video-scrim) 57%, transparent) 68%, color-mix(in srgb, var(--video-scrim) 72%, transparent));
+  --dock-title-shadow: 0 1px 5px var(--video-black);
+  --dock-preview-shadow: 0 1px 4px var(--video-black);
+  --dock-control-shadow: 0 1px 2px color-mix(in srgb, var(--video-black) 60%, transparent);
+  --dock-icon-shadow: 0 1px 1px color-mix(in srgb, var(--video-black) 53%, transparent);
+  --dock-mark-width: 12px;
+  --dock-mark-height: 2px;
+  --dock-mark-offset: 3px;
+  --dock-tool-width: 50px;
+  --dock-tool-gap: 2px;
+  position: absolute;
+  z-index: 2;
+  inset: auto 0 0;
+  padding: var(--space-6) var(--space-3) var(--space-1);
+  background: var(--dock-scrim);
+  transition: opacity var(--motion-base) var(--ease-out);
+}
+
+.display[data-transport=preview] .dock {
+  padding-top: var(--space-8);
+  background: var(--dock-scrim-preview);
+}
+
+.display:has(.start:not([hidden])) .dock {
+  pointer-events: none;
+}
+
+.display:has(.start:not([hidden])) .dock :is(button, input, a) {
+  pointer-events: auto;
+}
+
+.display:has(.start:not([hidden])) .transport {
+  text-shadow: var(--dock-preview-shadow);
+}
+
+.display:has(.start:not([hidden])) .transport .button {
+  text-shadow: inherit;
+}
+
+.wake-surface {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+[data-hover=local] .wake-surface {
+  display: block;
+}
+
+[data-controls=hidden] .dock {
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-controls=hidden] .wake-surface {
+  display: block;
+  cursor: none;
+}
+
+.dock-title {
+  padding-inline: var(--space-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--text-ui);
+  font-weight: 600;
+  line-height: 1.4;
+  text-shadow: var(--dock-title-shadow);
+}
+
+.dock-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.dock-title a:is(:hover, :focus-visible) {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: .16em;
+}
+
+.theater:not(:fullscreen, [data-expanded]):has(.film-info:not([hidden])) .display[data-transport=preview] .dock-title {
+  display: none;
+}
+
+.display[data-transport=preview] .range--timeline {
+  display: none;
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-block: var(--space-1);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.dock-button {
+  min-width: var(--control);
+  padding-inline: var(--space-2);
+}
+
+.display[data-transport=preview] .dock-playback-only,
+.display[data-transport=playback] .dock-preview-only {
+  display: none;
+}
+
+.view-more {
+  display: none;
+}
+
+.view-tools {
+  display: flex;
+  align-items: center;
+  gap: inherit;
+}
+
+.view-button {
+  position: relative;
+  text-shadow: var(--dock-control-shadow);
+}
+
+.view-button .icon {
+  filter: drop-shadow(var(--dock-icon-shadow));
+}
+
+.view-button[aria-pressed=true]::after {
+  content: "";
+  position: absolute;
+  bottom: var(--dock-mark-offset);
+  width: var(--dock-mark-width);
+  height: var(--dock-mark-height);
+  border-radius: var(--radius-sm);
+  background: currentColor;
+}
+
+.view-button--text {
+  font-size: var(--text-meta);
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+.theater:is(:fullscreen, [data-expanded]) .theater-toggle {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock {
+    transition: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .dock {
+    --control: var(--control-touch);
+    padding-left: max(var(--space-2), env(safe-area-inset-left));
+    padding-right: max(var(--space-2), env(safe-area-inset-right));
+  }
+
+  .dock .button {
+    touch-action: manipulation;
+  }
+
+  .theater:is(:fullscreen, [data-expanded]) .dock {
+    padding-bottom: max(var(--space-1), env(safe-area-inset-bottom));
+  }
+
+  /* Too narrow for a row of view tools: fold them into a labelled popover behind .view-more. */
+  @container theater (max-width: 30rem) {
+    .view-more {
+      display: inline-flex;
+    }
+
+    .view-controls {
+      position: relative;
+    }
+
+    .view-tools {
+      display: none;
+      position: absolute;
+      right: 0;
+      bottom: calc(100% + var(--space-1));
+      padding: var(--space-1);
+      gap: var(--dock-tool-gap);
+      border: 1px solid var(--color-border-strong);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface-raised);
+    }
+
+    .view-more[aria-expanded=true] + .view-tools {
+      display: flex;
+    }
+
+    .view-tools .view-button {
+      width: auto;
+      min-width: var(--dock-tool-width);
+      padding: var(--space-1);
+      flex-direction: column;
+      gap: var(--dock-tool-gap);
+    }
+
+    .view-tools .view-button::before {
+      content: attr(aria-label);
+      order: 1;
+      white-space: nowrap;
+      font: 500 var(--text-meta)/1.25 var(--font-ui);
+    }
+
+    .view-tools .view-button[aria-pressed=true] {
+      background: var(--video-control-hover);
+    }
+
+    .view-tools .view-button[aria-pressed=true]::after {
+      display: none;
+    }
+  }
+}
+
+@container theater (max-width: 30rem) {
+  .dock {
+    padding-inline: var(--space-2);
+  }
+
+  .controls {
+    gap: 0;
+  }
+
+  .dock-button {
+    padding-inline: var(--space-1);
+  }
+
+  .transport {
+    flex-wrap: wrap;
+  }
+
+  .transport .controls:last-child {
+    margin-inline-start: auto;
+  }
+}

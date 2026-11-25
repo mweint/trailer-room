@@ -1,0 +1,86 @@
+/* Film info: title, credit, facts and the film options menu under the picture. */
+.film-info {
+  /* Reserved so the page does not jump when a film's details arrive. */
+  --film-info-min-height: 4.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "heading options" "facts options";
+  align-content: start;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  padding-top: var(--space-3);
+  min-block-size: var(--film-info-min-height);
+}
+
+.film-info:has(.film-title:empty) {
+  visibility: hidden;
+}
+
+.theater:is(:fullscreen, [data-expanded]) .film-info {
+  display: none;
+}
+
+.film-heading,
+.film-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-3);
+  overflow-wrap: anywhere;
+}
+
+.film-heading {
+  grid-area: heading;
+}
+
+.film-title {
+  font-size: var(--text-title);
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -.02em;
+}
+
+.film-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.film-title a:is(:hover, :focus-visible) {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: .16em;
+}
+
+.film-credit {
+  color: var(--color-text-secondary);
+  font-size: var(--text-ui);
+}
+
+.film-facts {
+  grid-area: facts;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+  font-size: var(--text-meta);
+  line-height: 1.25rem;
+}
+
+.film-credit:empty,
+.film-facts > :empty {
+  display: none;
+}
+
+.film-options {
+  grid-area: options;
+  align-self: start;
+}
+
+@container theater (max-width: 30rem) {
+  .film-info {
+    --film-info-min-height: 6rem;
+  }
+
+  .film-heading,
+  .film-facts {
+    flex-direction: column;
+  }
+}

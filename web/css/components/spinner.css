@@ -1,0 +1,66 @@
+/* Spinner: a ring drawn in ::after. --on-picture sits on a disc; --on-pill replaces the label of a busy button. */
+.spinner {
+  --spinner-size: 16px;
+  --spinner-stroke: 2px;
+  --spinner-disc: 40px;
+  --spinner-period: 800ms;
+  --spinner-delay: 180ms;
+  position: relative;
+}
+
+.spinner--on-picture {
+  --spinner-track: color-mix(in srgb, var(--video-ink) 31%, transparent);
+  --spinner-head: var(--color-highlight);
+  width: var(--spinner-disc);
+  height: var(--spinner-disc);
+  background: color-mix(in srgb, var(--video-scrim) 74%, transparent);
+  border-radius: var(--radius-pill);
+  animation: spinner-reveal var(--motion-fast) var(--ease-out) var(--spinner-delay) backwards;
+}
+
+.spinner--on-pill {
+  --spinner-track: color-mix(in srgb, var(--video-ink-contrast) 22%, transparent);
+  --spinner-head: var(--video-ink-contrast);
+}
+
+[aria-busy=true] > .spinner--on-pill > * {
+  visibility: hidden;
+}
+
+.spinner--on-picture::after,
+[aria-busy=true] > .spinner--on-pill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: var(--spinner-size);
+  height: var(--spinner-size);
+  margin: auto;
+  border: var(--spinner-stroke) solid var(--spinner-track);
+  border-top-color: var(--spinner-head);
+  border-radius: var(--radius-pill);
+  animation: spinner-spin var(--spinner-period) linear infinite;
+}
+
+@keyframes spinner-reveal {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes spinner-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner--on-picture,
+  .spinner--on-picture::after,
+  [aria-busy=true] > .spinner--on-pill::after {
+    animation: none;
+  }
+}

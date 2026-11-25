@@ -211,10 +211,12 @@ class Handler(BaseHTTPRequestHandler):
                     return self.data(detail_cached(key, row.get("youtube"), row.get("slug"), int(time.time() // 21600)))
                 except (OSError, ValueError):
                     return self.data({"error": "Trailer catalog unreachable."}, 503)
-        if path in ("/", "/index.html", "/style.css", "/player.js", "/queue.js", "/fonts/dm-serif-text-latin.woff2",
-                    "/logos/a24.svg", "/logos/criterion.png", "/logos/neon.svg", "/logos/janus.png",
-                    "/logos/trailer-room.svg", "/logos/plex.svg", "/plex.js", "/crt.js"):
-            asset = ROOT / "web" / (path.strip("/") or "index.html")
+        web = ROOT / "web"
+        try:
+            asset = (web / (path.strip("/") or "index.html")).resolve()
+        except (OSError, ValueError):
+            asset = ROOT
+        if asset.is_relative_to(web) and asset.is_file():
             return self.send(200, asset.read_bytes(), mimetypes.guess_type(asset)[0] or "application/octet-stream")
         self.data({"error": "Not found"}, 404)
 

@@ -1,0 +1,39 @@
+/* Masthead: wordmark and the preferences button. */
+.mast {
+  --mast-height: 3.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--mast-height);
+}
+
+.mast-title {
+  font: 400 var(--text-brand)/1 var(--font-brand);
+  letter-spacing: -.035em;
+}
+
+.brand-mark {
+  width: auto;
+  height: 1cap;
+  vertical-align: baseline;
+  margin-inline-end: var(--space-2);
+}
+
+.mast-preferences {
+  width: var(--control-touch);
+  height: var(--control-touch);
+  padding: 0;
+  color: var(--color-text-muted);
+  margin-right: calc(-1 * var(--space-3));
+}
+
+.mast-preferences:hover,
+.mast-preferences:focus-visible {
+  color: var(--color-text);
+}
+
+@media (max-width: 36rem) {
+  .mast {
+    --mast-height: 3rem;
+  }
+}
