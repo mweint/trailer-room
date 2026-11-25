@@ -225,6 +225,16 @@ aside { display: grid; gap: var(--space-6); }
 .count { display: block; font-variant-numeric: tabular-nums; white-space: nowrap; }
 dialog { background: #191b1d; color: inherit; padding: var(--space-6); width: min(440px, 92vw); max-height: 80vh; border: 1px solid #3e4145; border-radius: 10px; }
 dialog::backdrop { background: #0009; }
+.plex-settings { border-bottom: 1px solid var(--line); padding-bottom: var(--space-4); }
+.plex-settings p { font-size: var(--text-ui); overflow-wrap: anywhere; }
+.plex-settings button { min-height: 44px; border: 1px solid var(--line); }
+#plexBegin { margin-top: var(--space-2); }
+#plexPicker { display: grid; gap: var(--space-2); margin-top: var(--space-3); }
+#plexPicker label { font-size: var(--text-meta); }
+#plexPicker select { min-height: 44px; width: 100%; background: #242527; padding-inline: var(--space-2); border: 1px solid var(--line); border-radius: 5px; }
+.plex-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+#plexMessage:not(:empty) { margin-top: var(--space-2); }
+.source-logo.plex { filter: grayscale(1) brightness(1.45); }
 dialog h3 { display: block; margin: var(--space-6) 0 var(--space-2); font-size: var(--text-ui); font-weight: 600; }
 .rating-filter { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: var(--space-1) var(--space-2); margin-top: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--line); font-size: var(--text-ui); }
 .rating-filter select { min-height: var(--control); padding-inline: var(--space-2); color: inherit; background: #1b1b1b; border: 1px solid #444540; border-radius: 5px; font: inherit; }

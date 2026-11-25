@@ -17,6 +17,7 @@ from urllib.parse import quote, urlsplit
 from urllib.request import Request, urlopen
 import webbrowser
 from catalogs import CatalogStore, SOURCES
+from plex import PlexError, PlexSource
 from trailer_selection import rank_trailers
 
 ROOT = Path(__file__).resolve().parent
@@ -147,6 +148,32 @@ class Handler(BaseHTTPRequestHandler):
                 or self.headers.get("Content-Type") != "application/json"
                 or self.headers.get("Origin") not in (None, "http://" + host, "https://" + host)):
             return self.data({"error": "Invalid refresh request."}, 403)
+        if self.path == "/api/refresh/plex":
+            plex.refresh(manual=True)
+            return self.data({"accepted": True}, 202)
+        if self.path.startswith("/api/plex/"):
+            origin = self.headers.get("Origin")
+            if not origin:
+                return self.data({"error": "Open Preferences to configure Plex."}, 403)
+            action = self.path.removeprefix("/api/plex/")
+            if action not in ("begin", "servers", "libraries", "connect", "disconnect"):
+                return self.data({"error": "Not found"}, 404)
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if not 0 < length <= 2048:
+                    raise ValueError()
+                body = json.loads(self.rfile.read(length))
+                if not isinstance(body, dict) or not all(isinstance(v, str) for v in body.values()):
+                    raise ValueError()
+            except (ValueError, UnicodeError):
+                return self.data({"error": "Invalid Plex request."}, 400)
+            try:
+                result = plex.begin(origin) if action == "begin" else plex.action(action, body)
+                return self.data(result)
+            except PlexError as exc:
+                return self.data({"error": str(exc)}, 400)
+            except (OSError, ValueError, KeyError, TypeError):
+                return self.data({"error": "Could not complete the Plex request. Check the connection and try again."}, 503)
         for key in SOURCES:
             if self.path == "/api/refresh/" + key:
                 collections.refresh(key, manual=True)
@@ -159,7 +186,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.data({"error": "Use the local player address."}, 403)
         path = urlsplit(self.path).path
         if path == "/api/collections":
-            return self.data(collections.snapshot())
+            return self.data(plex.include(collections.snapshot()))
         if path.startswith("/api/film/"):
             key = path.rsplit("/", 1)[1]
             if key in movies:
@@ -170,13 +197,14 @@ class Handler(BaseHTTPRequestHandler):
                     return self.data({"error": "Trailer catalog unreachable."}, 503)
         if path in ("/", "/index.html", "/style.css", "/player.js", "/queue.js", "/fonts/dm-serif-text-latin.woff2",
                     "/logos/a24.svg", "/logos/criterion.png", "/logos/neon.svg", "/logos/janus.png",
-                    "/logos/trailer-room.svg"):
+                    "/logos/trailer-room.svg", "/logos/plex.svg", "/plex.js"):
             asset = ROOT / "web" / (path.strip("/") or "index.html")
             return self.send(200, asset.read_bytes(), mimetypes.guess_type(asset)[0] or "application/octet-stream")
         self.data({"error": "Not found"}, 404)
 
 
 collections = CatalogStore(Path(os.environ.get("TRAILER_ROOM_DATA", ROOT / "data")), register)
+plex = PlexSource(collections.directory, register)
 
 
 if __name__ == "__main__":
@@ -199,4 +227,5 @@ if __name__ == "__main__":
     if args.open:
         webbrowser.open(address)
     collections.start()
+    plex.refresh()
     server.serve_forever()

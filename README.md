@@ -14,9 +14,19 @@ Open `http://YOUR-SERVER-IP:8765` using the server's LAN IP. The four lists load
 
 **Updates.** In Portainer, redeploy the stack with image re-pulling enabled. From the CLI, run `docker compose pull trailer-room` and then `docker compose up -d trailer-room`. The host directory persists across container replacements. If upgrading from the old named volume, the new directory fills on first launch. Player preferences stay in the browser at the same site address.
 
+To run the same app directly on a PC, run `python -B server.py --open` from this repository. It uses the local `data/` directory and opens the player on localhost.
+
+## Connect a Plex library
+
+Open **Preferences → Connect Plex**, sign in with Plex, and choose a server. The library picker shows the actual names of the movie-type libraries shared with your account on that server. Choose one and click **Use this library**, even if only one library appears. Its films join the regular source toggles. Trailer Room skips known shorts and merges overlapping films with the curated sources.
+
+The connection belongs to this installation. Everyone who can open it can see the selected titles. The server saves the selected library's metadata and Plex server credential in its appdata. It contacts Plex over HTTPS and plays public trailers through YouTube or Vimeo. No SSH access, media mount, or Compose changes are required.
+
+A startup or visit checks for changes once a day. If Plex is unreachable, the source shows its last good list and offers a retry. To switch libraries or disconnect, use **Manage Plex connection** and sign in with the same Plex account. Disconnecting removes the saved library and server credential from appdata.
+
 ## Catalog updates
 
-Startup and page visits check the age of each list. A missing or 30-day-old list starts a background fetch. Simultaneous visits share one fetch per source. A failed request or unexpectedly small result preserves the last good list, including across restarts. The source row shows its last successful update, failure time, reason and Retry button. A first-install failure is labeled separately. Automatic retries are eligible again after one hour, on the next startup or visit.
+Startup and page visits check the age of each list. A missing or 30-day-old list starts a background fetch. Simultaneous visits share one fetch per source. A failed request or unexpectedly small result preserves the last good list, including across restarts. Healthy sources show their film counts. After a failed refresh, the source row also shows its last successful update, failure time, reason and Retry button. A first-install failure is labeled separately. Automatic retries are eligible again after one hour, on the next startup or visit.
 
 | Source | Where the installation gets its list |
 | --- | --- |

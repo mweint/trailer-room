@@ -1,4 +1,5 @@
 import {SOURCES, US_RATINGS, mergeSources, matches, withinRating} from "./queue.js";
+import {plexPreferences} from "./plex.js";
 
 const $ = id => document.getElementById(id);
 const STORE = "trailer-room.v1";
@@ -74,7 +75,7 @@ function renderQueue() {
     button.append(text); button.onclick = () => skipTo(film); li.append(button); $("queue").append(li);
   }
   $("queueEmpty").textContent = queue.length || pending ? "" :
-    Object.values(prefs.enabled).some(Boolean) ? "No more films in this queue." : "Select a film source to build your queue.";
+    Object.keys(SOURCES).some(s => prefs.enabled[s]) ? "No more films in this queue." : "Select a film source to build your queue.";
   fitQueuePreview();
 }
 function fitQueuePreview() {
@@ -112,28 +113,22 @@ function renderSources() {
     logo.alt = ""; logo.src = "/logos/" + file;
     label.append(logo,text,input,el("span","switch")); $("sources").append(label);
     const state = sourceStatus[key];
-    if (state) {
+    if (state?.error) {
       const date = stamp => new Date(stamp * 1000).toLocaleString(undefined, {dateStyle:"medium", timeStyle:"short"});
-      const note = el("div", "source-update");
-      if (state.error) {
-        note.classList.add("source-issue");
-        note.append(document.createTextNode((state.updated ? "Stale list from " + date(state.updated) : "No saved list") +
-          ". Failed " + date(state.attempted) + ": " + state.error + " "));
-        const retry = el("button", "", state.refreshing ? "Retrying?" : "Retry");
-        retry.disabled = state.refreshing;
-        retry.onclick = async () => {
-          retry.disabled = true;
-          try {
-            const result = await fetch("/api/refresh/" + key, {method:"POST", headers:{"Content-Type":"application/json"}});
-            if (!result.ok) throw Error();
-            await syncCollections();
-          } catch { retry.disabled = false; setNotice("Could not contact Trailer Room. Try again."); }
-        };
-        note.append(retry);
-      } else {
-        note.textContent = state.refreshing ? (state.updated ? "Updating saved list?" : "Fetching first list?") :
-          state.updated ? "Updated " + date(state.updated) : "Waiting for first update";
-      }
+      const note = el("div", "source-update source-issue");
+      note.append(document.createTextNode((state.updated ? "Stale list from " + date(state.updated) : "No saved list") +
+        ". Failed " + date(state.attempted) + ": " + state.error + " "));
+      const retry = el("button", "", state.refreshing ? "Retrying…" : "Retry");
+      retry.disabled = state.refreshing;
+      retry.onclick = async () => {
+        retry.disabled = true;
+        try {
+          const result = await fetch("/api/refresh/" + key, {method:"POST", headers:{"Content-Type":"application/json"}});
+          if (!result.ok) throw Error();
+          await syncCollections();
+        } catch { retry.disabled = false; setNotice("Could not contact Trailer Room. Try again."); }
+      };
+      note.append(retry);
       $("sources").append(note);
     }
     if (focused === key) input.focus({preventScroll:true});
@@ -144,7 +139,7 @@ function sourcesChanged() {
   const replacement = films.find(f => current && f.keys.some(k => current.keys.includes(k)));
   if (replacement) current = {...replacement, keys: [...new Set([...current.keys, ...replacement.keys])]};
   rebuild(); renderSources();
-  if (!current || !enabled(current) || hidden(current)) advance();
+  if (!replacement || !enabled(current) || hidden(current)) advance();
   else renderFilm();
 }
 function renderFilm() {
@@ -256,7 +251,7 @@ async function advance(requested = null) {
     let film = requested || queue.shift(); requested = null;
     if (!film) {
       const waiting = Object.keys(SOURCES).some(s => prefs.enabled[s] && !loaded.has(s));
-      const enabledAny = Object.values(prefs.enabled).some(Boolean);
+      const enabledAny = Object.keys(SOURCES).some(s => prefs.enabled[s]);
       if (seenFilms.size && rebuild().some(f => !matches(f, unavailable)) && restartRound(eligible.filter(f=>!matches(f,unavailable)))) continue;
       renderQueue();
       empty(enabledAny ? "No trailers ready" : "Choose a film source", waiting);
@@ -714,14 +709,23 @@ document.addEventListener("keydown",e=>{
   if(action){e.preventDefault();action();}
 });
 let pollTimer, syncVersion = 0;
-async function syncCollections() {
+const plexSetup = plexPreferences(syncCollections);
+async function syncCollections(force = false) {
   const version = ++syncVersion;
   clearTimeout(pollTimer);
   try {
     const data = await json("/api/collections");
     if (version !== syncVersion) return;
-    const changed = Object.keys(SOURCES).some(key => sourceStatus[key]?.updated !== data.sources[key].updated ||
-      sourceStatus[key]?.refreshing !== data.sources[key].refreshing);
+    const changed = force || JSON.stringify(sourceStatus) !== JSON.stringify(data.sources);
+    if (data.sources.plex) {
+      SOURCES.plex = {name: "Plex · " + data.sources.plex.name, short: data.sources.plex.name, logo: "plex.svg"};
+      prefs.enabled.plex ??= true;
+    } else {
+      delete SOURCES.plex;
+      delete catalogs.plex;
+      loaded.delete("plex");
+    }
+    plexSetup.status(data.sources.plex);
     sourceStatus = data.sources;
     Object.assign(catalogs, data.catalogs);
     for (const [key, state] of Object.entries(sourceStatus)) {
@@ -740,3 +744,8 @@ async function syncCollections() {
 }
 renderSources();
 syncCollections();
+if (location.hash === "#plex-setup") {
+  history.replaceState(null, "", location.pathname + location.search);
+  $("preferences").click();
+  plexSetup.resume();
+}

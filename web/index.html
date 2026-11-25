@@ -91,6 +91,20 @@
     </aside>
   </main>
   <dialog id="settings" aria-labelledby="settingsTitle"><div class="panel-heading"><h2 id="settingsTitle">Preferences</h2><button id="close">Close</button></div>
+    <section class="plex-settings" aria-labelledby="plexTitle">
+      <h3 id="plexTitle">Plex library</h3>
+      <p id="plexSummary"></p>
+      <button id="plexBegin" type="button">Connect Plex</button>
+      <form id="plexPicker" hidden>
+        <label for="plexServer">Server</label><select id="plexServer"></select>
+        <label for="plexLibrary">Library</label><select id="plexLibrary"></select>
+        <p>Anyone who opens this Trailer Room can see titles from the selected library.</p>
+        <div class="plex-actions"><button id="plexSave" type="submit" disabled>Use this library</button>
+          <button id="plexDisconnect" type="button" hidden>Disconnect Plex</button>
+          <button id="plexCancel" type="button">Cancel</button></div>
+      </form>
+      <p id="plexMessage" role="status"></p>
+    </section>
     <h3>Hidden movies</h3><div id="hiddenList"></div>
     <h3>Skipped trailers</h3><div id="skippedList"></div>
   </dialog>
