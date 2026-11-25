@@ -8,20 +8,6 @@
   overflow-wrap: anywhere;
 }
 
-/* One line: what is connected, then its actions as links. */
-.plex-library-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  min-height: var(--control);
-}
-
-.plex-row-actions {
-  display: flex;
-  flex: none;
-  gap: var(--space-1);
-}
 
 .plex-picker {
   display: grid;

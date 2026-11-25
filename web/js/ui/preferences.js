@@ -1,13 +1,14 @@
 // The Programming sheet (opened from the masthead and the Up next summary): open and close, and the
 // hidden-movie and skipped-trailer lists with Restore. Its filters are rendered by programming.js.
-import {$, el, openDialog, closeDialog, dismissible} from "../dom.js";
+import {$, el, expand, openDialog, closeDialog, dismissible} from "../dom.js";
 import {pref, removeFromList, savePrefs} from "../prefs.js";
 import {sourcesChanged} from "../playback/controller.js";
 import {forgetUnavailable} from "../playback/rotation.js";
 
+// [preference, list element, count element, fold toggle, empty text]
 const LISTS = [
-  ["hidden", "hiddenList", "No hidden movies."],
-  ["skipped", "skippedList", "No skipped trailers."]
+  ["hidden", "hiddenList", "hiddenCount", "hiddenToggle", "No hidden movies."],
+  ["skipped", "skippedList", "skippedCount", "skippedToggle", "No skipped trailers."]
 ];
 
 function restoreLine(field, item) {
@@ -38,8 +39,9 @@ function restoreLine(field, item) {
 }
 
 function renderLists() {
-  for (const [field, id, none] of LISTS) {
+  for (const [field, id, count, , none] of LISTS) {
     const list = $(id);
+    $(count).textContent = pref(field).length ? pref(field).length.toLocaleString() : "None";
     list.replaceChildren();
     if (!pref(field).length) {
       list.append(el("p", "", none));
@@ -67,5 +69,9 @@ export function initPreferences() {
   $("preferences").onclick = open;
   $("programmingSummary").onclick = open;
   $("close").onclick = () => closeDialog($("settings"));
+  // Hidden movies and skipped trailers are rarely needed, so each folds into one row with a count.
+  for (const [, , , toggle] of LISTS) {
+    $(toggle).onclick = () => expand($(toggle), $(toggle).getAttribute("aria-expanded") !== "true");
+  }
   dismissible($("settings"));
 }

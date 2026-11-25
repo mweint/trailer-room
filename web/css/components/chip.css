@@ -6,15 +6,6 @@
   gap: var(--space-2);
 }
 
-/* A group's less common chips sit in a collapse below the first row, opened by a "+N" chip. */
-.chips-more {
-  flex-basis: 100%;
-}
-
-.chips-more > .chips {
-  padding-top: var(--space-2);
-}
-
 .chip {
   --chip-height: 1.75rem;
   display: inline-flex;

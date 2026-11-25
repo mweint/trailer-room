@@ -1,4 +1,5 @@
-// Plex setup inside Preferences: sign-in hand-off, server and library pickers, connect and remove.
+// Plex setup inside the Programming sheet: sign-in hand-off, server and library pickers, connect and remove.
+// The Plex source row's menu (programming.js) starts these through the functions returned below.
 import {$, reveal} from "../dom.js";
 import {plexCall as call} from "../api.js";
 
@@ -12,26 +13,25 @@ function options(select, prompt, entries = []) {
 
 // sync(force) reloads the collections after the library changes.
 export function plexPreferences(sync) {
-  const begin = $("plexBegin");
   const picker = $("plexPicker");
   const server = $("plexServer");
   const library = $("plexLibrary");
   const save = $("plexSave");
-  const disconnect = $("plexDisconnect");
   const message = $("plexMessage");
   let state;
   let flow;
+  let busy = false;
 
   function status(source) {
     state = source;
-    $("plexSummary").textContent = state ? "Plex: " + state.server + " / " + state.name : "Add films from a Plex library.";
-    begin.textContent = state ? "Change" : "Connect Plex";
-    reveal(disconnect, !!state);
   }
   status(null);
 
   async function signIn(removeConnection = "") {
-    begin.disabled = disconnect.disabled = true;
+    if (busy) {
+      return;
+    }
+    busy = true;
     message.textContent = "Opening Plex sign-in…";
     try {
       const result = await call("begin");
@@ -44,15 +44,13 @@ export function plexPreferences(sync) {
       location.assign(result.url);
     } catch (error) {
       message.textContent = error.message;
-      begin.disabled = disconnect.disabled = false;
+      busy = false;
     }
   }
-  begin.onclick = () => signIn();
 
   async function removed() {
     sessionStorage.removeItem(flowKey);
     reveal(picker, false);
-    reveal(begin, true);
     await sync(true);
     message.textContent = "Library removed from Trailer Room.";
   }
@@ -63,7 +61,6 @@ export function plexPreferences(sync) {
       if (!flow) {
         throw Error("Start a new Plex sign-in in this tab.");
       }
-      reveal(begin, false);
       const connection = sessionStorage.getItem(removalKey);
       if (connection) {
         sessionStorage.removeItem(removalKey);
@@ -80,7 +77,6 @@ export function plexPreferences(sync) {
       message.textContent = result.servers.length ? "" : "No accessible Plex servers with secure connections were found.";
     } catch (error) {
       message.textContent = error.message;
-      reveal(begin, true);
     }
   }
 
@@ -113,20 +109,18 @@ export function plexPreferences(sync) {
     sessionStorage.removeItem(flowKey);
     flow = null;
     reveal(picker, false);
-    reveal(begin, true);
     message.textContent = "";
-    begin.focus();
   };
 
   async function connect() {
     const body = {flow, server: server.value, library: library.value};
-    server.disabled = library.disabled = save.disabled = disconnect.disabled = $("plexCancel").disabled = true;
+    server.disabled = library.disabled = save.disabled = $("plexCancel").disabled = true;
+    busy = true;
     message.textContent = "Importing films…";
     try {
       await call("connect", body);
       sessionStorage.removeItem(flowKey);
       reveal(picker, false);
-      reveal(begin, true);
       await sync(true);
       message.textContent = "Library connected.";
     } catch (error) {
@@ -135,7 +129,7 @@ export function plexPreferences(sync) {
       server.disabled = server.options.length < 2;
       library.disabled = library.options.length < 2;
       save.disabled = !library.value;
-      disconnect.disabled = false;
+      busy = false;
       $("plexCancel").disabled = false;
     }
   }
@@ -145,12 +139,12 @@ export function plexPreferences(sync) {
       connect();
     }
   };
-  disconnect.onclick = async () => {
-    if (!state || !confirm('Remove “' + state.name + '” from Trailer Room for everyone on this installation?')) {
+  async function remove() {
+    if (busy || !state || !confirm('Remove “' + state.name + '” from Trailer Room for everyone on this installation?')) {
       return;
     }
     const connection = state.connection;
-    begin.disabled = disconnect.disabled = true;
+    busy = true;
     message.textContent = "Removing library…";
     try {
       const result = await call("disconnect", {connection, ...(picker.hidden ? {} : {flow})});
@@ -161,8 +155,8 @@ export function plexPreferences(sync) {
     } catch (error) {
       message.textContent = error.message;
     } finally {
-      begin.disabled = disconnect.disabled = false;
+      busy = false;
     }
-  };
-  return {status, resume};
+  }
+  return {status, resume, start: () => signIn(), remove};
 }

@@ -22,9 +22,16 @@
   color: var(--color-text);
 }
 
-/* Each group (Sources, Decade, Genre, Rating) opens with a small label; groups are a group gap apart. */
+/* Groups (Sources, Decade, Genre, Rating, then the hidden and skipped lists) are divided by a hairline,
+   so where one ends is never left to spacing alone. Each opens with a small label. */
+.programming-group {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
 .programming-label {
-  margin: var(--space-4) 0 var(--space-2);
+  margin-bottom: var(--space-2);
   color: var(--color-text-muted);
   font-size: var(--text-meta);
   font-weight: 600;
@@ -36,9 +43,49 @@
 }
 
 .programming-note {
-  align-self: center;
   color: var(--color-text-muted);
   font-size: var(--text-meta);
+}
+
+.programming-note:not(:empty) {
+  margin: calc(-1 * var(--space-1)) 0 var(--space-2);
+}
+
+/* A folded list (hidden movies, skipped trailers): one row with its count; the chevron turns when open. */
+.programming-fold {
+  --button-inset: var(--space-2);
+  display: flex;
+  width: calc(100% + 2 * var(--button-inset));
+  justify-content: flex-start;
+  gap: var(--space-2);
+  font-size: var(--text-ui);
+}
+
+.programming-fold > .panel-count {
+  margin-inline-start: auto;
+}
+
+.programming-fold .icon {
+  color: var(--color-text-muted);
+}
+
+.programming-fold[aria-expanded=false] .icon {
+  transform: rotate(-90deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .programming-fold .icon {
+    transition: transform var(--motion-layout) var(--ease-in-out);
+  }
+}
+
+/* The row added at the end of the sources while no Plex library is connected. */
+.source-add {
+  --button-inset: var(--space-2);
+  display: flex;
+  justify-content: flex-start;
+  width: calc(100% + 2 * var(--button-inset));
+  color: var(--color-text-secondary);
 }
 
 .source {
@@ -50,6 +97,15 @@
   position: relative;
   text-align: left;
   cursor: pointer;
+}
+
+/* A source with options (Plex) has a menu between its count and its switch. */
+.source:has(.source-menu) {
+  grid-template-columns: var(--source-logo-column) minmax(0, 1fr) auto auto;
+}
+
+.source-menu .menu-toggle {
+  margin-inline: calc(-1 * var(--space-2));
 }
 
 .source-details {

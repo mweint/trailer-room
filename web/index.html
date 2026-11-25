@@ -132,36 +132,43 @@
     <div class="panel-heading"><h2 id="settingsTitle" class="panel-title">Programming</h2><span id="programmingCount" class="panel-count"></span>
       <button id="close" class="button button--icon dialog-close" type="button" aria-label="Close" title="Close (Esc)"><svg class="icon" aria-hidden="true"><use href="#i-remove"/></svg></button></div>
     <p id="programmingEmpty" class="collapse programming-empty" hidden>No films match. <button id="clearFilters" class="button button--link" type="button">Clear filters</button></p>
-    <h3 class="programming-label">Sources</h3>
-    <div id="sources" class="source-list"></div>
-    <section class="plex-settings" aria-labelledby="plexTitle">
-      <h4 id="plexTitle" class="sr-only">Plex library</h4>
-      <div class="plex-library-row"><p id="plexSummary"></p>
-        <div class="plex-row-actions">
-          <button id="plexBegin" class="button button--link collapse" type="button">Connect Plex</button>
-          <button id="plexDisconnect" class="button button--link collapse" type="button" hidden>Remove</button>
-        </div></div>
-      <form id="plexPicker" class="plex-picker collapse" hidden>
-        <label for="plexServer">Server</label><select id="plexServer" class="select"></select>
-        <label for="plexLibrary">Library</label><select id="plexLibrary" class="select"></select>
-        <p>Anyone who opens this Trailer Room can see titles from the selected library.</p>
-        <div class="plex-actions"><button id="plexSave" class="button button--outline" type="submit" disabled>Use this library</button>
-          <button id="plexCancel" class="button button--outline" type="button">Cancel</button></div>
-      </form>
-      <p id="plexMessage" class="plex-message" role="status"></p>
+    <section class="programming-group" aria-labelledby="sourcesLabel">
+      <h3 class="programming-label" id="sourcesLabel">Sources</h3>
+      <div id="sources" class="source-list"></div>
+      <section class="plex-settings" aria-label="Plex library">
+        <form id="plexPicker" class="plex-picker collapse" hidden>
+          <label for="plexServer">Server</label><select id="plexServer" class="select"></select>
+          <label for="plexLibrary">Library</label><select id="plexLibrary" class="select"></select>
+          <p>Anyone who opens this Trailer Room can see titles from the selected library.</p>
+          <div class="plex-actions"><button id="plexSave" class="button button--outline" type="submit" disabled>Use this library</button>
+            <button id="plexCancel" class="button button--outline" type="button">Cancel</button></div>
+        </form>
+        <p id="plexMessage" class="plex-message" role="status"></p>
+      </section>
     </section>
-    <h3 class="programming-label" id="decadeLabel">Decade</h3>
-    <div id="decades" class="chips" role="group" aria-labelledby="decadeLabel"></div>
-    <h3 class="programming-label" id="genreLabel">Genre</h3>
-    <div id="genres" class="chips" role="group" aria-labelledby="genreLabel"></div>
-    <h3 class="programming-label">Rating</h3>
-    <div class="rating-filter">
-      <label for="maxRating">Up to U.S. rating</label>
-      <select id="maxRating" class="select"><option value="">Any rating</option></select>
-      <label class="unrated-option">Include unrated films<input type="checkbox" id="includeUnrated"><span class="switch" aria-hidden="true"></span></label>
-    </div>
-    <h3 class="programming-label">Hidden movies</h3><div id="hiddenList"></div>
-    <h3 class="programming-label">Skipped trailers</h3><div id="skippedList"></div>
+    <section class="programming-group" aria-labelledby="decadeLabel">
+      <h3 class="programming-label" id="decadeLabel">Decade</h3>
+      <div id="decades" class="chips" role="group" aria-labelledby="decadeLabel"></div>
+    </section>
+    <section class="programming-group" aria-labelledby="genreLabel">
+      <h3 class="programming-label" id="genreLabel">Genre</h3>
+      <p id="genreStatus" class="programming-note" role="status"></p>
+      <div id="genres" class="chips collapse" role="group" aria-labelledby="genreLabel"></div>
+    </section>
+    <section class="programming-group" aria-labelledby="ratingLabel">
+      <h3 class="programming-label" id="ratingLabel">Rating</h3>
+      <div class="rating-filter">
+        <label for="maxRating">Up to U.S. rating</label>
+        <select id="maxRating" class="select"><option value="">Any rating</option></select>
+        <label class="unrated-option">Include unrated films<input type="checkbox" id="includeUnrated"><span class="switch" aria-hidden="true"></span></label>
+      </div>
+    </section>
+    <section class="programming-group">
+      <button id="hiddenToggle" class="button button--flush programming-fold" type="button" aria-expanded="false" aria-controls="hiddenList"><span>Hidden movies</span><span id="hiddenCount" class="panel-count"></span><svg class="icon icon--sm" aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></button>
+      <div id="hiddenList" class="collapse" data-collapsed></div>
+      <button id="skippedToggle" class="button button--flush programming-fold" type="button" aria-expanded="false" aria-controls="skippedList"><span>Skipped trailers</span><span id="skippedCount" class="panel-count"></span><svg class="icon icon--sm" aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></button>
+      <div id="skippedList" class="collapse" data-collapsed></div>
+    </section>
   </dialog>
   <script type="module" src="/js/main.js"></script>
 </body></html>

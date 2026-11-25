@@ -9,6 +9,7 @@ const loaded = new Set();
 let films = [];
 let sourceStatus = {};
 let genres = {};
+let genreProgress = null;
 let pollTimer;
 let syncVersion = 0;
 let hooks;
@@ -53,6 +54,15 @@ export function detail(film) {
   return details.get(film.key);
 }
 
+// The server's genre pass: {done, total} films checked, or null when the server does not say.
+export function genreStatus() {
+  return genreProgress;
+}
+
+export function genresCollecting() {
+  return !!genreProgress && genreProgress.done < genreProgress.total;
+}
+
 // Genres arrive from the server's background pass, keyed by film key; films without one yet have none.
 export function genresOf(film) {
   return genres[film.id] || genres[film.key] || [];
@@ -84,6 +94,7 @@ export async function syncCollections(force = false) {
     const changed = force || JSON.stringify(sourceStatus) !== JSON.stringify(data.sources) ||
       genreCount !== Object.keys(genres).length;
     genres = data.genres || {};
+    genreProgress = data.genreProgress || null;
     if (data.sources.plex) {
       addSource("plex", {
         name: "Plex · " + data.sources.plex.name,
@@ -111,6 +122,8 @@ export async function syncCollections(force = false) {
     }
     if (Object.values(sourceStatus).some(state => state.refreshing)) {
       pollTimer = setTimeout(syncCollections, 2500);
+    } else if (genresCollecting()) {
+      pollTimer = setTimeout(syncCollections, 15000);
     }
   } catch {
     if (version !== syncVersion) {

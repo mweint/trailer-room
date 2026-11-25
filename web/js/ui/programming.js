@@ -1,17 +1,18 @@
 // Programming: what goes into the rotation. Source switches with counts, failure status and retry;
 // decade and genre chips; the rating filter; the live film count, the summary under Up next and Clear filters.
-import {$, el, expand, reveal} from "../dom.js";
+import {$, el, resize, reveal} from "../dom.js";
 import {refreshSource} from "../api.js";
 import {SOURCES, US_RATINGS, decadeOf, tally} from "../catalog.js";
-import {allFilms, enabled, fitsFilters, genresOf, hidden, isLoaded, statusOf, syncCollections} from "../library.js";
+import {allFilms, enabled, fitsFilters, genreStatus, genresCollecting, genresOf, hidden, isLoaded, statusOf, syncCollections} from "../library.js";
 import {pref, setPref, sourceEnabled, setSourceEnabled, savePrefs} from "../prefs.js";
 import {sourcesChanged} from "../playback/controller.js";
 
-// Genres shown before the "+N" chip; the rest open below it.
+// Genres shown before the "+N" chip; the rest continue in the same flow when it is pressed.
 const FIRST_GENRES = 6;
 
 let notice = () => {};
 let moreGenres = false;
+let plexActions = {};
 
 function failureNote(key, state) {
   const date = stamp => new Date(stamp * 1000).toLocaleString(undefined, {dateStyle: "medium", timeStyle: "short"});
@@ -56,7 +57,11 @@ function renderSources() {
     const logo = el("img", "source-logo " + key);
     logo.alt = "";
     logo.src = "/logos/" + file;
-    label.append(logo, text, input, el("span", "switch"));
+    label.append(logo, text);
+    if (key === "plex") {
+      label.append(plexMenu());
+    }
+    label.append(input, el("span", "switch"));
     $("sources").append(label);
     const state = statusOf(key);
     if (state?.error) {
@@ -66,6 +71,47 @@ function renderSources() {
       input.focus({preventScroll: true});
     }
   }
+  if (!SOURCES.plex) {
+    const add = el("button", "button button--flush source-add", "+ Connect Plex");
+    add.type = "button";
+    add.onclick = () => plexActions.connectPlex();
+    $("sources").append(add);
+  }
+}
+
+// The Plex row's options: the library is managed where it is listed.
+function plexMenu() {
+  const menu = el("details", "menu source-menu");
+  const toggle = el("summary", "menu-toggle");
+  const list = el("div", "menu-list");
+  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  icon.setAttribute("class", "menu-toggle-icon");
+  icon.setAttribute("aria-hidden", "true");
+  icon.setAttribute("viewBox", "0 0 24 24");
+  for (const x of [5, 12, 19]) {
+    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    dot.setAttribute("cx", x);
+    dot.setAttribute("cy", 12);
+    dot.setAttribute("r", 1.7);
+    icon.append(dot);
+  }
+  toggle.append(icon);
+  toggle.setAttribute("aria-label", "Plex library options");
+  toggle.title = "Plex library options";
+  const change = el("button", "button menu-item", "Change library");
+  const remove = el("button", "button menu-item", "Remove library");
+  change.type = remove.type = "button";
+  change.onclick = () => {
+    menu.open = false;
+    plexActions.connectPlex();
+  };
+  remove.onclick = () => {
+    menu.open = false;
+    plexActions.removePlex();
+  };
+  list.append(change, remove);
+  menu.append(toggle, list);
+  return menu;
 }
 
 function changed() {
@@ -114,34 +160,28 @@ function renderGenres(films) {
       genres.push(genre);
     }
   }
-  // Chosen genres stay in the first row so a selection is never hidden behind "+N".
-  const first = genres.filter((g, i) => i < FIRST_GENRES || pref("genres").includes(g));
-  const rest = genres.filter(g => !first.includes(g));
-  const chips = [chip("Any", "genres", null), ...first.map(g => chip(g, "genres", g))];
-  if (rest.length) {
-    const toggle = el("button", "chip", moreGenres ? "Fewer" : "+" + rest.length);
-    const more = el("div", "collapse chips-more");
-    const row = el("div", "chips");
+  // The less common genres continue in the same flow when shown; the toggle is always the last chip.
+  // Chosen genres always show, so a selection is never hidden.
+  const shown = genres.filter((g, i) => moreGenres || i < FIRST_GENRES || pref("genres").includes(g));
+  const extra = genres.length - genres.filter((g, i) => i < FIRST_GENRES || pref("genres").includes(g)).length;
+  const chips = [chip("Any", "genres", null), ...shown.map(g => chip(g, "genres", g))];
+  if (extra) {
+    const toggle = el("button", "chip", moreGenres ? "Show fewer" : "+" + extra);
     toggle.type = "button";
     toggle.dataset.chip = "genres:more";
-    toggle.setAttribute("aria-controls", "moreGenres");
-    more.id = "moreGenres";
-    row.append(...rest.map(g => chip(g, "genres", g)));
-    more.append(row);
+    toggle.setAttribute("aria-expanded", String(moreGenres));
     toggle.onclick = () => {
-      moreGenres = !moreGenres;
-      toggle.textContent = moreGenres ? "Fewer" : "+" + rest.length;
-      expand(toggle, moreGenres);
+      resize($("genres"), () => {
+        moreGenres = !moreGenres;
+        renderGenres(inSources());
+      }, !moreGenres);
     };
-    chips.push(toggle, more);
-    renderChips($("genres"), chips);
-    expand(toggle, moreGenres, false);
-  } else {
-    renderChips($("genres"), chips);
+    chips.push(toggle);
   }
-  if (!genres.length) {
-    $("genres").append(el("span", "programming-note", "Genres are still being collected."));
-  }
+  renderChips($("genres"), chips);
+  const status = genreStatus();
+  $("genreStatus").textContent = genresCollecting() ?
+    "Still collecting · " + status.done.toLocaleString() + " of " + status.total.toLocaleString() + " films" : "";
 }
 
 function filtersActive() {
@@ -174,9 +214,17 @@ export function renderProgramming() {
   reveal($("programmingEmpty"), loaded && !count && !!filtersActive());
 }
 
-// notice(message) writes the status line under the player.
-export function initProgramming(showNotice) {
+// notice(message) writes the status line under the player. plex: {connectPlex(), removePlex()} from plex.js.
+export function initProgramming(showNotice, plex) {
   notice = showNotice;
+  plexActions = plex;
+  // An open Plex menu closes on a click anywhere else.
+  document.addEventListener("click", event => {
+    const menu = $("sources").querySelector(".source-menu[open]");
+    if (menu && !menu.contains(event.target)) {
+      menu.open = false;
+    }
+  });
   for (const rating of US_RATINGS) {
     $("maxRating").add(new Option(rating, rating));
   }

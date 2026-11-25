@@ -83,7 +83,7 @@ Every piece of text has one role, and each role has one size, weight and colour.
 - State attributes set by JavaScript: `data-crt` on `.screen`; `data-controls="hidden"`, `data-hover="local"` and `data-transport` on `.display`; `data-theater` on `.page`; `data-expanded` on `.theater`.
 - No `style="…"` attributes. JavaScript writes only these custom properties: `--fill` (range), `--queue-height` (queue), `--art` (screen artwork), `--beam` `--triad` `--tube-texture` (CRT).
 - **Motion is applied by kind, never per place.** Every change that moves or shows something is one of three kinds, and each has one implementation:
-  1. *In place.* A region opens, closes, appears or disappears (Programming, the description, Plex setup steps, the no-match note, the extra genre chips). It carries `.collapse` and changes only through `expand(toggle, open)` (the region named by the toggle's `aria-controls`) or `reveal(node, shown)` in `dom.js`. These measure the height before and after the change and animate between the two, with the content fading, using `--ease-out` over `--motion-layout` when opening and `--motion-layout-exit` when closing. This works in every browser and for partial states (a preview's first lines). Closed regions get `visibility: hidden`, so they leave the tab order. Neighbours that size from them (the queue) follow frame by frame. No feature writes its own height transition.
+  1. *In place.* A region opens, closes, appears or disappears (Programming, the description, Plex setup steps, the no-match note, the hidden and skipped lists; `resize(node, change)` when a region's own content grows, like a chip group). It carries `.collapse` and changes only through `expand(toggle, open)` (the region named by the toggle's `aria-controls`) or `reveal(node, shown)` in `dom.js`. These measure the height before and after the change and animate between the two, with the content fading, using `--ease-out` over `--motion-layout` when opening and `--motion-layout-exit` when closing. This works in every browser and for partial states (a preview's first lines). Closed regions get `visibility: hidden`, so they leave the tab order. Neighbours that size from them (the queue) follow frame by frame. No feature writes its own height transition.
   2. *Overlays.* Menus open from their trigger at `scale(.95)` with a fade (menu CSS) and close instantly. Dialogs open and close only through `openDialog()` / `closeDialog()` in `dom.js`: a centred dialog grows from `scale(.95)`, a sheet slides in from its edge, both fade with their backdrop, and closing runs the same motion faster. Esc, the close button (an icon X at the end of the heading) and a click outside all close it.
   3. *Lists.* When a list's items change, `places()` before and `glide()` after slide the items that stayed to their new places and fade in the new ones (the queue).
 
@@ -111,7 +111,7 @@ Primitives (`web/css/components/`), reused everywhere:
 | Dialog | `.dialog` | `--sheet` (docked to the right edge, full height) |
 | Spinner | `.spinner` | on pill, on picture |
 | Collapse | `.collapse` | `--preview` (first lines stay, last fades). Opened and closed only through `expand()` / `reveal()` in `dom.js`. |
-| Chip | `.chip` in `.chips` | Toggle with `aria-pressed`; an Any chip clears the group; less common values open under a +N chip. |
+| Chip | `.chip` in `.chips` | Toggle with `aria-pressed`; an Any chip clears the group. Less common values are hidden behind a +N chip; when shown they continue in the same flow and the toggle becomes "Show fewer", always the last chip. The group's height animates through `resize()`. |
 
 Features (`web/css/features/` and `web/js/ui/`). Each has a CSS file; the module column names the code that owns its DOM:
 
@@ -123,7 +123,7 @@ Features (`web/css/features/` and `web/js/ui/`). Each has a CSS file; the module
 | Dock | `.dock` | `dock.js`, `transport.js` | Auto-hide and view tools; title, timeline, transport buttons, volume |
 | Film info | `.film-info` | `film-info.js` | Title, credit, facts, description (three lines, More), film options menu |
 | Queue | `.queue` | `queue.js` | Up-next list, poster loading as rows scroll into view, list height |
-| Programming | `.programming` (a sheet) | `programming.js`, `preferences.js`, `plex.js` | Everything about what plays: source rows with status and retry, Plex setup, decade and genre chips, rating filter, hidden and skipped lists, live film count, Clear filters when nothing matches. Opened from the masthead button and the summary line under Up next. |
+| Programming | `.programming` (a sheet) | `programming.js`, `preferences.js`, `plex.js` | Everything about what plays, in groups divided by hairlines: Sources (rows with status and retry; Plex is managed from a ⋯ menu on its own row, or a "+ Connect Plex" row when absent), Decade, Genre (with "Still collecting" progress while the server's pass runs), Rating, then Hidden movies and Skipped trailers folded into one row each with a count. Live film count, Clear filters when nothing matches. Opened from the masthead button and the summary line under Up next. |
 
 `theater.js` (theater mode, fullscreen; styled in `layout.css`) and `shortcuts.js` have no CSS file of their own.
 
@@ -162,3 +162,7 @@ ui/
 ## Out of scope for the cleanup
 
 Behaviour, copy, layout, the API, and the `trailer-room.v1` storage format stay exactly as they are.
+
+## Genres
+
+One vocabulary, made on the server (`GENRES` in `server.py`): the list Letterboxd uses (TMDB's), without TV Movie, plus Musical and Noir. Sci-Fi becomes Science Fiction and Biography becomes History. Short, Sport, TV Movie and other TV categories are dropped; a film always has another genre as well.

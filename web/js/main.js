@@ -96,7 +96,6 @@ initCrt();
 dock.initDock();
 theater.initTheater({showControls: dock.showControls, layoutChanged: fitQueuePreview});
 initQueue();
-initProgramming(screen.setNotice);
 preferences.initPreferences();
 initShortcuts({
   viewToolsOpen: dock.viewToolsOpen,
@@ -112,6 +111,7 @@ initShortcuts({
 });
 
 const plexSetup = plexPreferences(syncCollections);
+initProgramming(screen.setNotice, {connectPlex: plexSetup.start, removePlex: plexSetup.remove});
 onSync({
   plexStatus: plexSetup.status,
   changed: sourcesChanged,

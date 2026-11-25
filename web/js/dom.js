@@ -27,7 +27,8 @@ function timing(opening, moving = false) {
 
 // Animates a node's height across change(), starting from wherever an interrupted animation left it.
 // fade also fades the content in or out; while closing it stays visible until the motion ends.
-function resize(node, change, opening, fade) {
+// Used directly when a region's own content grows or shrinks (a chip group showing more chips).
+export function resize(node, change, opening, fade = false) {
   const from = node.getBoundingClientRect().height;
   node.getAnimations().forEach(animation => animation.cancel());
   change();

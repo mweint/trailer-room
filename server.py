@@ -1,6 +1,7 @@
 """Trailer Room web server. Uses only the Python standard library."""
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import functools
 import hashlib
 import html
@@ -28,7 +29,7 @@ ROOT = Path(__file__).resolve().parent
 CINEMETA = "https://v3-cinemeta.strem.io"
 RECHECK = 30 * 86400  # Ratings drift and missing films get added, but slowly.
 LETTERBOXD_GAP = 2.0
-CINEMETA_GAP = 1.5
+GENRE_WORKERS = 5
 YOUTUBE = re.compile(r"[A-Za-z0-9_-]{11}\Z")
 IMDB = re.compile(r"tt\d{7,10}\Z")
 movies = {}
@@ -235,7 +236,7 @@ def detail_cached(key, youtube, slug, period):
     return {"imdb": imdb, "videos": videos, "art": meta.get("background") or "",
             "directors": meta.get("director") or [],
             "description": boxd.get("description") or whole_words(meta.get("description")),
-            "genres": meta.get("genres") or [], "runtime": meta.get("runtime") or "",
+            "genres": genre_names(meta.get("genres")), "runtime": meta.get("runtime") or "",
             "rating": meta.get("imdbRating") or row.get("rating"),
             "letterboxd": {"rating": boxd.get("rating"), "url": boxd.get("url") or ""}}
 
@@ -251,45 +252,73 @@ def genres_pending(key, now):
     return not isinstance(entry, dict) or (not entry.get("genres") and stale(entry.get("checked"), now))
 
 
+# One genre vocabulary, based on the list Letterboxd uses (TMDB's), plus Musical and Noir.
+# Cinemeta mixes IMDb names ("Sci-Fi") and TMDB names ("Science Fiction"); both map here.
+# Names not listed (TV Movie, Short, Sport, Reality-TV, ...) are dropped: a film always has another genre too.
+GENRES = {
+    "Action": "Action", "Adventure": "Adventure", "Animation": "Animation", "Comedy": "Comedy",
+    "Crime": "Crime", "Documentary": "Documentary", "Drama": "Drama", "Family": "Family",
+    "Fantasy": "Fantasy", "History": "History", "Biography": "History", "Horror": "Horror",
+    "Music": "Music", "Musical": "Musical", "Mystery": "Mystery", "Film-Noir": "Noir", "Film Noir": "Noir",
+    "Romance": "Romance", "Sci-Fi": "Science Fiction", "Science Fiction": "Science Fiction",
+    "Thriller": "Thriller", "War": "War", "Western": "Western",
+}
+
+
+def genre_names(genres):
+    names = []
+    for genre in genres or []:
+        name = GENRES.get(genre)
+        if name and name not in names:
+            names.append(name)
+    return names
+
+
 def film_genres():
-    return {key: entry["genres"] for key, entry in genre_cache.items()
-            if key in movies and isinstance(entry, dict) and entry.get("genres")}
+    return {key: genre_names(entry["genres"]) for key, entry in genre_cache.items()
+            if key in movies and isinstance(entry, dict) and genre_names(entry.get("genres"))}
+
+
+def genre_progress():
+    now = time.time()
+    keys = list(movies)
+    return {"done": sum(not genres_pending(k, now) for k in keys), "total": len(keys)}
+
+
+def fetch_genres(key):
+    row = movies[key]
+    try:
+        imdb = row.get("imdb") if IMDB.fullmatch(row.get("imdb") or "") else find_imdb(row)
+        meta = read_public(CINEMETA + "/meta/movie/" + imdb + ".json").get("meta") or {} if imdb else {}
+        record_genres(key, meta.get("genres"))
+        return True
+    except HTTPError as err:
+        if err.code == 404:
+            record_genres(key, [])
+            return True
+        return False
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return False
 
 
 def genre_pass():
-    """Fill in Cinemeta genres for every listed film, one request per CINEMETA_GAP, for the genre filter."""
+    """Fill in Cinemeta genres for every listed film, for the genre filter. Cinemeta is a cached public
+    service built for apps, so a few requests at a time are fine; the first pass takes minutes."""
     failed = {}  # key -> retry time, so a film that keeps erroring cannot hold up the rest
-    while True:
-        now = time.time()
-        pending = [k for k in list(movies) if failed.get(k, 0) <= now and genres_pending(k, now)]
-        if not pending:
-            genre_cache.save()
-            time.sleep(60)
-            continue
-        for done, key in enumerate(pending, 1):
-            if not genres_pending(key, time.time()):
-                continue  # A play filled it in meanwhile.
-            row = movies[key]
-            try:
-                imdb = row.get("imdb") if IMDB.fullmatch(row.get("imdb") or "") else ""
-                if not imdb:
-                    time.sleep(CINEMETA_GAP)
-                    imdb = find_imdb(row)
-                meta = {}
-                if imdb:
-                    time.sleep(CINEMETA_GAP)
-                    meta = read_public(CINEMETA + "/meta/movie/" + imdb + ".json").get("meta") or {}
-                record_genres(key, meta.get("genres"))
-            except HTTPError as err:
-                if err.code == 404:
-                    record_genres(key, [])
-                else:
-                    failed[key] = time.time() + 3600
-            except (OSError, ValueError, KeyError, TypeError, AttributeError):
-                failed[key] = time.time() + 3600
-            if done % 25 == 0:
+    with ThreadPoolExecutor(GENRE_WORKERS) as pool:
+        while True:
+            now = time.time()
+            pending = [k for k in list(movies) if failed.get(k, 0) <= now and genres_pending(k, now)]
+            if not pending:
                 genre_cache.save()
-        genre_cache.save()
+                time.sleep(60)
+                continue
+            for start in range(0, len(pending), 50):
+                batch = [k for k in pending[start:start + 50] if genres_pending(k, time.time())]
+                for key, ok in zip(batch, pool.map(fetch_genres, batch)):
+                    if not ok:
+                        failed[key] = time.time() + 3600
+                genre_cache.save()
 
 
 def allowed_host(header, port, lan):
@@ -386,7 +415,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.data({"error": "Use the local player address."}, 403)
         path = urlsplit(self.path).path
         if path == "/api/collections":
-            return self.data({**plex.include(collections.snapshot()), "genres": film_genres()})
+            return self.data({**plex.include(collections.snapshot()), "genres": film_genres(),
+                              "genreProgress": genre_progress()})
         if path.startswith("/api/film/"):
             key = path.rsplit("/", 1)[1]
             if key in movies:

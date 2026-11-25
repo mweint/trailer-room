@@ -50,6 +50,14 @@ class WholeWordsTests(unittest.TestCase):
             self.assertEqual(server.whole_words(text), expected, text)
 
 
+class GenreNameTests(unittest.TestCase):
+    def test_one_vocabulary(self):
+        self.assertEqual(server.genre_names(["Sci-Fi", "Science Fiction", "Drama"]), ["Science Fiction", "Drama"])
+        self.assertEqual(server.genre_names(["Film-Noir", "Crime", "Biography"]), ["Noir", "Crime", "History"])
+        self.assertEqual(server.genre_names(["Music", "Musical"]), ["Music", "Musical"])
+        self.assertEqual(server.genre_names(["TV Movie", "Short", "Sport", None]), [])
+
+
 class ExpiryTests(unittest.TestCase):
     def test_stale(self):
         now = 1_000_000_000
