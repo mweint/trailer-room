@@ -1,13 +1,15 @@
 import {SOURCES, US_RATINGS, mergeSources, matches, withinRating, posterUrls} from "./queue.js";
 import {plexPreferences} from "./plex.js";
+import {beamTexture} from "./crt.js";
 
 const $ = id => document.getElementById(id);
 const STORE = "trailer-room.v1";
 let saved = {};
 try { saved = JSON.parse(localStorage.getItem(STORE)) || {}; } catch {}
+const savedRating = US_RATINGS.includes(saved.maxRating) ? saved.maxRating : "";
 const prefs = {enabled: {criterion: true, a24: true, neon: true, janus: true, ...saved.enabled},
-  maxRating: US_RATINGS.includes(saved.maxRating) ? saved.maxRating : "",
-  includeUnrated: typeof saved.includeUnrated === "boolean" ? saved.includeUnrated : null,
+  maxRating: savedRating,
+  includeUnrated: typeof saved.includeUnrated === "boolean" ? saved.includeUnrated : !savedRating,
   sourcesCollapsed: !!saved.sourcesCollapsed,
   hidden: saved.hidden || [], skipped: saved.skipped || [], crt: !!saved.crt, wide: !!saved.wide,
   volume: saved.volume ?? null, muted: !!saved.muted};
@@ -46,7 +48,7 @@ function detail(film) {
   }
   return details.get(film.key);
 }
-function fitsRating(film) { return withinRating(film, prefs.maxRating, prefs.includeUnrated ?? !prefs.maxRating); }
+function fitsRating(film) { return withinRating(film, prefs.maxRating, prefs.includeUnrated); }
 function enabled(film) { return film.sources.some(s => prefs.enabled[s]) && fitsRating(film); }
 function hidden(film) { return prefs.hidden.some(h => h.keys.some(key => film.keys.includes(key))); }
 function playableClips(data) {
@@ -559,9 +561,11 @@ function sizeTube() {
   if (!prefs.crt) return;
   const screen = $("screen");
   const dpr = window.devicePixelRatio || 1;
-  const pitch = Math.max(2, Math.round(screen.clientHeight * dpr / 420)) / dpr;
-  screen.style.setProperty("--beam", pitch + "px");
+  const pitch = Math.max(2, Math.round(screen.clientHeight * dpr / 420));
+  screen.style.setProperty("--beam", pitch / dpr + "px");
   screen.style.setProperty("--triad", 3 / dpr + "px");
+  const texture = beamTexture(pitch);
+  if (texture) screen.style.setProperty("--tube-texture", 'url("' + texture + '")');
 }
 function applyTube() {
   $("screen").classList.toggle("crt-on",prefs.crt);
@@ -681,14 +685,11 @@ $("full").onclick = async () => {
 document.addEventListener("fullscreenchange",fullscreenControls);
 for (const rating of US_RATINGS) $("maxRating").add(new Option(rating, rating));
 $("maxRating").value = prefs.maxRating;
-function ratingControls() {
-  $("ratingHint").hidden = !prefs.maxRating;
-  $("includeUnrated").checked = prefs.includeUnrated ?? !prefs.maxRating;
-}
-ratingControls();
+$("includeUnrated").checked = prefs.includeUnrated;
 $("maxRating").onchange = () => {
   prefs.maxRating = $("maxRating").value;
-  ratingControls();
+  if (prefs.maxRating) prefs.includeUnrated = false;
+  $("includeUnrated").checked = prefs.includeUnrated;
   save(); setNotice(); sourcesChanged();
 };
 $("includeUnrated").onchange = () => {

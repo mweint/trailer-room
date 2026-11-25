@@ -213,7 +213,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self.data({"error": "Trailer catalog unreachable."}, 503)
         if path in ("/", "/index.html", "/style.css", "/player.js", "/queue.js", "/fonts/dm-serif-text-latin.woff2",
                     "/logos/a24.svg", "/logos/criterion.png", "/logos/neon.svg", "/logos/janus.png",
-                    "/logos/trailer-room.svg", "/logos/plex.svg", "/plex.js"):
+                    "/logos/trailer-room.svg", "/logos/plex.svg", "/plex.js", "/crt.js"):
             asset = ROOT / "web" / (path.strip("/") or "index.html")
             return self.send(200, asset.read_bytes(), mimetypes.guess_type(asset)[0] or "application/octet-stream")
         self.data({"error": "Not found"}, 404)

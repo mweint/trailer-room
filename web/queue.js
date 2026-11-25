@@ -8,12 +8,10 @@ export const SOURCES = {
 export const US_RATINGS = ["G", "PG", "PG-13", "R", "NC-17"];
 
 export function withinRating(film, maximum, includeUnrated = !maximum) {
-  if (film.certification === "Unrated") {
-    if (!includeUnrated) return false;
-    if (!film.ratedCertification) return true;
-  }
   const rank = US_RATINGS.indexOf(film.ratedCertification || film.certification);
-  return !maximum || (rank >= 0 && rank <= US_RATINGS.indexOf(maximum));
+  if (rank < 0) return includeUnrated;
+  if (film.certification === "Unrated" && !includeUnrated) return false;
+  return !maximum || rank <= US_RATINGS.indexOf(maximum);
 }
 
 export function posterUrls(film) {

@@ -24,7 +24,7 @@ The connection belongs to this installation. Everyone who can open it can see th
 
 A startup or visit checks for changes once a day. If Plex is unreachable, the source shows its last good list and offers a retry. In Preferences, **Change library** opens the picker. **Remove library** asks for confirmation and clears the imported list and server credential from this installation. The browser that connected the library can remove it directly. For older connections, other browsers, or after clearing cookies, Plex asks the owner to sign in.
 
-Under **Film sources**, set the maximum U.S. rating and choose whether to include explicitly unrated films. With a limit set, unrated films start off and unknown ratings are always skipped. Click **Film sources** to collapse the controls. Each browser remembers its choices.
+Choosing a specific maximum U.S. rating switches **Include unrated films** off. Turn it on to include films marked unrated or missing a U.S. rating. Returning to **Any rating** keeps the switch where you left it. Each browser remembers the two visible choices.
 
 ## Catalog updates
 
@@ -37,7 +37,7 @@ Startup and page visits check the age of each list. A missing or 30-day-old list
 | NEON | The film records embedded in the [NEON catalog](https://www.neonrated.com/films/all). |
 | Janus Films | The [Janus Films list](https://www.janusfilms.com/films/list). |
 
-Matching Wikidata records supply optional film identifiers and U.S. certifications. Unknown certifications are excluded when a rating limit is active. Film details and trailer IDs are resolved on demand using Cinemeta, A24 and YouTube. Upload resolution and like counts depend on provider availability. The image and repository contain no downloaded movie lists, IMDb bulk datasets or viewing history.
+Matching Wikidata records supply optional film identifiers and U.S. certifications. Film details and trailer IDs are resolved on demand using Cinemeta, A24 and YouTube. Upload resolution and like counts depend on provider availability. The image and repository contain no downloaded movie lists, IMDb bulk datasets or viewing history.
 
 ## Optional configuration
 
