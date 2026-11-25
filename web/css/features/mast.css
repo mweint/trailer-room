@@ -19,10 +19,9 @@
   margin-inline-end: var(--space-2);
 }
 
+/* The icon variant at touch size; the negative margin lines the icon, not its hover circle, up with the edge. */
 .mast-preferences {
-  width: var(--control-touch);
-  height: var(--control-touch);
-  padding: 0;
+  --control: var(--control-touch);
   color: var(--color-text-muted);
   margin-right: calc(-1 * var(--space-3));
 }

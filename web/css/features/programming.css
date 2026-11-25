@@ -99,9 +99,23 @@
   cursor: pointer;
 }
 
-/* A source with options (Plex) has a menu between its count and its switch. */
+/* The label's own box is dropped so its parts sit in the row's grid; clicks on them still reach the label. */
+.source-label {
+  display: contents;
+}
+
+/* A source with options (Plex) has its menu, outside the label, between its count and its switch. */
 .source:has(.source-menu) {
   grid-template-columns: var(--source-logo-column) minmax(0, 1fr) auto auto;
+}
+
+/* The menu follows the switch in the markup, so both are placed explicitly. */
+.source:has(.source-menu) .switch {
+  grid-area: 1 / 4;
+}
+
+.source-menu {
+  grid-area: 1 / 3;
 }
 
 .source-menu .menu-toggle {

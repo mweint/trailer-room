@@ -40,7 +40,10 @@ function renderSources() {
   const focused = $("sources").contains(document.activeElement) ? document.activeElement.dataset.source : null;
   $("sources").replaceChildren();
   for (const [key, {name, logo: file}] of Object.entries(SOURCES)) {
-    const label = el("label", "source");
+    // The label covers the logo, name, count and switch. Any other control (Plex's menu) sits beside the
+    // label, never inside it, or the label would hand its clicks to that control instead of the switch.
+    const row = el("div", "source");
+    const label = el("label", "source-label");
     const input = el("input");
     const text = el("span", "source-details");
     const total = allFilms().filter(f => f.sources.includes(key) && fitsFilters(f)).length;
@@ -57,12 +60,12 @@ function renderSources() {
     const logo = el("img", "source-logo " + key);
     logo.alt = "";
     logo.src = "/logos/" + file;
-    label.append(logo, text);
+    label.append(logo, text, input, el("span", "switch"));
+    row.append(label);
     if (key === "plex") {
-      label.append(plexMenu());
+      row.append(plexMenu());
     }
-    label.append(input, el("span", "switch"));
-    $("sources").append(label);
+    $("sources").append(row);
     const state = statusOf(key);
     if (state?.error) {
       $("sources").append(failureNote(key, state));

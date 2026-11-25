@@ -1,13 +1,18 @@
 /* Chip: a small toggle in a wrapping group, for choosing several values from a short set.
    Selected is aria-pressed=true and reads as a filled pill, the convention for filter chips. */
+/* Lines keep their natural height. A wrapping group otherwise stretches its lines to fill any extra height,
+   which happens while the group's height animates. */
 .chips {
   display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
   gap: var(--space-2);
 }
 
+/* Text trimmed to cap height, as in the button, so the label centres optically in the pill. */
 .chip {
   --chip-height: 1.75rem;
+  text-box: trim-both cap alphabetic;
   display: inline-flex;
   align-items: center;
   min-height: var(--chip-height);

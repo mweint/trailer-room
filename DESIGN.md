@@ -89,6 +89,7 @@ Every piece of text has one role, and each role has one size, weight and colour.
 
   Changes driven by playback or keyboard shortcuts (next film, the picture's cover) are exempt and only cross-fade. Under `prefers-reduced-motion: reduce`, sizes and positions snap and fades remain.
 - **Clipped content fades; it is never cut hard.** Where more content sits past an edge, that edge fades over a mask: the queue's top and bottom (only while rows are hidden there) and a preview collapse's last line. A label (a title in a list) truncates with an ellipsis instead. Masks use `black` and `transparent` as alpha only; they are not colours.
+- **Controls are built so their parts line up on their own.** Text in buttons and chips is trimmed to cap height (`text-box: trim-both cap alphabetic`), so labels centre optically and line up with icons beside them. A wrapping group of controls keeps its lines at natural height (`align-content: flex-start`), so it never stretches while its height animates. A `<label>` holds exactly one control: any other control in the same row sits beside the label, never inside it, or the label hands its clicks to that control.
 - **Labels align to the column; fills bleed.** A button whose label must line up with a column edge (queue rows, the sources toggle, More) uses `.button--flush`: it keeps its padding and takes an equal negative margin, so the hover fill extends past the column instead of the text sitting off it. A scroll box around flush rows pads by the same inset and cancels it with a negative margin, so the fill is not clipped; on the scrollbar side it pads one inset more, so fills never run under a scrollbar. A row with a thumbnail uses the same inset on every side of it, and its corners are concentric with the thumbnail's (outer radius ≈ inner radius + inset).
 - **The sidebar is Up next only.** Its heading is followed by one summary line of what Programming lets through, which opens the Programming sheet. Beside the player the list ends level with the bottom of the picture, so both columns share one edge.
 - **Queue rows** span the column. Remove (×) sits at the right end, shows on hover or focus and always on touch, and takes the film out of the current round only; Hide movie in the film options is the lasting version.
@@ -102,10 +103,10 @@ Primitives (`web/css/components/`), reused everywhere:
 
 | Component | Class | Variants |
 | --- | --- | --- |
-| Button | `.button` | `--icon` (square), `--outline` (dialog actions), `--link` (inline retry, More), `--on-video`, `--flush` (aligned to the column; padding set by `--button-inset`) |
+| Button | `.button` | `--icon` (every icon-only button, always round), `--outline` (dialog actions), `--link` (inline retry, More), `--on-video`, `--flush` (aligned to the column; padding set by `--button-inset`) |
 | Switch | `.switch` | — |
 | Range | `.range` | timeline, volume |
-| Select | `.select` | — |
+| Select | `.select` | Native select with its arrow replaced by a chevron, inset from the right edge by the same `--space-3` as the text from the left |
 | Menu | `.menu` | film options. The compact view-tools popover is part of the dock, because the same buttons sit inline at every other width. |
 | Panel heading | `.panel-heading` | — |
 | Dialog | `.dialog` | `--sheet` (docked to the right edge, full height) |
