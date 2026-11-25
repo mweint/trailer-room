@@ -1,0 +1,24 @@
+/* Collapse: a region that opens and closes in place. dom.js expand() and reveal() run the motion
+   (height and fade); this file holds only the states. --collapse-closed is the closed height
+   (0, or a few lines for a preview). The clip margin leaves room for focus rings. */
+.collapse {
+  --collapse-closed: 0px;
+  overflow: clip;
+  overflow-clip-margin: var(--space-2);
+}
+
+.collapse[data-collapsed] {
+  max-height: var(--collapse-closed);
+}
+
+/* Fully closed: the content fades and leaves the tab order and accessibility tree. */
+.collapse[data-collapsed]:not(.collapse--preview) {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Preview: the first lines stay visible and the last one fades. Code collapses a preview only when
+   its content is longer than --collapse-closed. */
+.collapse--preview[data-collapsed] {
+  mask-image: linear-gradient(to bottom, black calc(100% - 1lh), transparent);
+}

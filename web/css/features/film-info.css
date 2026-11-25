@@ -74,10 +74,8 @@
 }
 
 /* Description: body text, set apart from the metadata above by a group gap.
-   Two lines, the last faded, until More opens it. film-info.js reads --synopsis-lines to decide whether More shows. */
+   A preview collapse (components/collapse.css): two lines, the last faded, until More opens it. */
 .film-synopsis {
-  --synopsis-lines: 2lh;
-  --synopsis-fade: 1lh;
   grid-area: synopsis;
   max-width: var(--measure);
   margin-top: var(--space-3);
@@ -91,32 +89,11 @@
 }
 
 .film-synopsis-text {
-  overflow: hidden;
-}
-
-.film-synopsis:has([aria-expanded=false]) .film-synopsis-text {
-  max-height: var(--synopsis-lines);
-}
-
-@supports (height: calc-size(auto, size)) {
-  .film-synopsis:has([aria-expanded=false]) .film-synopsis-text {
-    max-height: none;
-    height: calc-size(auto, min(size, var(--synopsis-lines)));
-  }
-}
-
-.film-synopsis:has([aria-expanded=false]:not([hidden])) .film-synopsis-text {
-  mask-image: linear-gradient(to bottom, black calc(100% - var(--synopsis-fade)), transparent);
+  --collapse-closed: 2lh;
 }
 
 .film-synopsis-toggle {
   color: var(--color-text-muted);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .film-synopsis-text {
-    transition: height var(--motion-layout) var(--ease-in-out);
-  }
 }
 
 @container theater (max-width: 30rem) {

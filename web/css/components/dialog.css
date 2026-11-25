@@ -14,6 +14,51 @@
   background: color-mix(in srgb, var(--color-bg) 60%, transparent);
 }
 
+/* Overlay motion: opens from 95% scale with a fade, closes faster. Under reduced motion only the fade stays.
+   display and overlay transition discretely so the closing fade is seen before the dialog leaves the top layer. */
+.dialog,
+.dialog::backdrop {
+  opacity: 0;
+  transition:
+    opacity var(--motion-fast) var(--ease-out),
+    display var(--motion-fast) allow-discrete,
+    overlay var(--motion-fast) allow-discrete;
+}
+
+.dialog[open],
+.dialog[open]::backdrop {
+  opacity: 1;
+  transition-duration: var(--motion-base);
+}
+
+@starting-style {
+  .dialog[open],
+  .dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dialog {
+    transform: scale(.95);
+    transition:
+      opacity var(--motion-fast) var(--ease-out),
+      transform var(--motion-fast) var(--ease-out),
+      display var(--motion-fast) allow-discrete,
+      overlay var(--motion-fast) allow-discrete;
+  }
+
+  .dialog[open] {
+    transform: none;
+  }
+
+  @starting-style {
+    .dialog[open] {
+      transform: scale(.95);
+    }
+  }
+}
+
 .dialog h3 {
   display: block;
   margin: var(--space-6) 0 var(--space-2);

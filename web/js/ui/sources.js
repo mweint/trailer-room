@@ -1,5 +1,5 @@
 // Sources: source switches with counts, failure status and retry, the rating filter and the collapse toggle.
-import {$, el} from "../dom.js";
+import {$, el, expand} from "../dom.js";
 import {refreshSource} from "../api.js";
 import {SOURCES, US_RATINGS} from "../catalog.js";
 import {allFilms, fitsRating, isLoaded, statusOf, syncCollections} from "../library.js";
@@ -64,9 +64,8 @@ export function renderSources() {
   }
 }
 
-// CSS animates the collapse from aria-expanded and hides the closed list from focus and screen readers.
-function showSourceOptions() {
-  $("sourcesToggle").setAttribute("aria-expanded", String(!pref("sourcesCollapsed")));
+function showSourceOptions(animate) {
+  expand($("sourcesToggle"), !pref("sourcesCollapsed"), animate);
 }
 
 // notice(message) writes the status line under the player.
@@ -91,10 +90,10 @@ export function initSources(showNotice) {
     notice();
     sourcesChanged();
   };
-  showSourceOptions();
+  showSourceOptions(false);
   $("sourcesToggle").onclick = () => {
     setPref("sourcesCollapsed", !pref("sourcesCollapsed"));
-    showSourceOptions();
+    showSourceOptions(true);
     savePrefs();
   };
 }

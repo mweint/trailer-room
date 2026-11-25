@@ -1,5 +1,5 @@
 // Film info: title link, credit, facts and the film options menu.
-import {$, headingLink} from "../dom.js";
+import {$, expand, headingLink} from "../dom.js";
 import {sourceNames} from "../catalog.js";
 import {addToList, savePrefs} from "../prefs.js";
 import {currentFilm, currentClip, advance} from "../playback/controller.js";
@@ -18,24 +18,26 @@ export function showFilmInfo(film, info, clip, link) {
     sourceNames(film)
   ].filter(Boolean).join(" · ");
   $("synopsis").textContent = info?.description || "";
-  setSynopsisExpanded(false);
+  synopsisOpen = false;
+  fitSynopsis();
   $("hide").disabled = false;
   $("alternate").disabled = !clip;
 }
 
-function setSynopsisExpanded(expanded) {
-  $("synopsisToggle").setAttribute("aria-expanded", String(expanded));
-  $("synopsisToggle").textContent = expanded ? "Less" : "More";
-  fitSynopsis();
-}
+// Whether the viewer opened the description with More; reset for each film.
+let synopsisOpen = false;
 
-// The toggle shows only when the description runs past its clamped lines (--synopsis-lines in CSS, e.g. "2lh").
-// Measured against the clamp, not the current height, so it stays put while the text animates.
-function fitSynopsis() {
+// The description collapses to its preview only when it is longer than the preview (--collapse-closed, e.g. "2lh");
+// otherwise it stays open and More is hidden. Runs again when the width changes.
+function fitSynopsis(animate = false) {
   const text = $("synopsis");
+  const toggle = $("synopsisToggle");
   const style = getComputedStyle(text);
-  const clamp = parseFloat(style.getPropertyValue("--synopsis-lines")) * parseFloat(style.lineHeight);
-  $("synopsisToggle").hidden = text.scrollHeight <= clamp + 1;
+  const preview = parseFloat(style.getPropertyValue("--collapse-closed")) * parseFloat(style.lineHeight);
+  const longer = text.scrollHeight > preview + 1;
+  toggle.hidden = !longer;
+  toggle.textContent = synopsisOpen ? "Less" : "More";
+  expand(toggle, synopsisOpen || !longer, animate);
 }
 
 export function setFilmInfoState(hidden, busy) {
@@ -70,9 +72,10 @@ export function dismissFilmOptions() {
 // notice(message) writes the status line under the player.
 export function initFilmInfo(notice) {
   $("synopsisToggle").onclick = () => {
-    setSynopsisExpanded($("synopsisToggle").getAttribute("aria-expanded") !== "true");
+    synopsisOpen = !synopsisOpen;
+    fitSynopsis(true);
   };
-  new ResizeObserver(fitSynopsis).observe($("synopsis"));
+  new ResizeObserver(() => fitSynopsis()).observe($("synopsis").parentElement);
   document.addEventListener("click", e => {
     if ($("filmOptions").open && !$("filmOptions").contains(e.target)) {
       $("filmOptions").open = false;

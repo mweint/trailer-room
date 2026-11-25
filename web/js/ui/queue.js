@@ -1,5 +1,5 @@
 // Queue: the up-next list, poster loading and sizing the list to the space beside the player.
-import {$, el} from "../dom.js";
+import {$, el, glide, places} from "../dom.js";
 import {posterUrls} from "../catalog.js";
 import {skipTo, removeFromQueue} from "../playback/controller.js";
 
@@ -88,6 +88,7 @@ export function renderQueue(queue, pending, anyEnabled) {
   $("queue").closest(".queue").setAttribute("aria-busy", String(pending));
   const list = $("queue");
   const previous = new Map(Array.from(list.children, row => [row.dataset.id, row]));
+  const before = places(list.children);
   $("remaining").textContent = queue.length ? queue.length.toLocaleString() + " queued" : "";
   // Keep the existing image nodes when the next film moves up a row.
   const preview = queue.slice(0, 13);
@@ -106,6 +107,7 @@ export function renderQueue(queue, pending, anyEnabled) {
     posterWatch.unobserve(list.lastChild);
     list.lastChild.remove();
   }
+  glide(list.children, before);
   $("queueEmpty").textContent = queue.length || pending ? "" :
     anyEnabled ? "No more films in this queue." : "Select a film source to build your queue.";
   fitQueuePreview();

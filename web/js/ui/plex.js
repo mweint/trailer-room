@@ -1,5 +1,5 @@
 // Plex setup inside Preferences: sign-in hand-off, server and library pickers, connect and remove.
-import {$} from "../dom.js";
+import {$, reveal} from "../dom.js";
 import {plexCall as call} from "../api.js";
 
 const flowKey = "trailer-room.plex-setup";
@@ -26,7 +26,7 @@ export function plexPreferences(sync) {
     state = source;
     $("plexSummary").textContent = state ? state.server + " / " + state.name : "Add films from a library you choose.";
     begin.textContent = state ? "Change library" : "Connect Plex";
-    disconnect.hidden = !state;
+    reveal(disconnect, !!state);
   }
   status(null);
 
@@ -51,8 +51,8 @@ export function plexPreferences(sync) {
 
   async function removed() {
     sessionStorage.removeItem(flowKey);
-    picker.hidden = true;
-    begin.hidden = false;
+    reveal(picker, false);
+    reveal(begin, true);
     await sync(true);
     message.textContent = "Library removed from Trailer Room.";
   }
@@ -63,7 +63,7 @@ export function plexPreferences(sync) {
       if (!flow) {
         throw Error("Start a new Plex sign-in in this tab.");
       }
-      begin.hidden = true;
+      reveal(begin, false);
       const connection = sessionStorage.getItem(removalKey);
       if (connection) {
         sessionStorage.removeItem(removalKey);
@@ -76,11 +76,11 @@ export function plexPreferences(sync) {
       const result = await call("servers", {flow});
       options(server, "Choose a server", result.servers);
       options(library, "Choose a library");
-      picker.hidden = false;
+      reveal(picker, true);
       message.textContent = result.servers.length ? "" : "No accessible Plex servers with secure connections were found.";
     } catch (error) {
       message.textContent = error.message;
-      begin.hidden = false;
+      reveal(begin, true);
     }
   }
 
@@ -112,8 +112,8 @@ export function plexPreferences(sync) {
   $("plexCancel").onclick = () => {
     sessionStorage.removeItem(flowKey);
     flow = null;
-    picker.hidden = true;
-    begin.hidden = false;
+    reveal(picker, false);
+    reveal(begin, true);
     message.textContent = "";
     begin.focus();
   };
@@ -125,8 +125,8 @@ export function plexPreferences(sync) {
     try {
       await call("connect", body);
       sessionStorage.removeItem(flowKey);
-      picker.hidden = true;
-      begin.hidden = false;
+      reveal(picker, false);
+      reveal(begin, true);
       await sync(true);
       message.textContent = "Library connected.";
     } catch (error) {
