@@ -1,6 +1,7 @@
 /* Inside the Programming sheet: Plex setup (part of Sources) and the hidden and skipped lists with Restore. */
+/* No margin of its own: it holds only regions that open and close, which carry their spacing inside. */
 .plex-settings {
-  margin-top: var(--space-2);
+  display: grid;
 }
 
 .plex-settings p {
@@ -12,7 +13,7 @@
 .plex-picker {
   display: grid;
   gap: var(--space-3);
-  margin-top: var(--space-3);
+  padding-top: var(--space-3);
 }
 
 .plex-field {
@@ -52,7 +53,7 @@
 }
 
 .plex-message:not(:empty) {
-  margin-top: var(--space-2);
+  padding-top: var(--space-2);
 }
 
 .restore {

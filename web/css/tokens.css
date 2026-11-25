@@ -45,6 +45,7 @@
 
   /* Size */
   --control: 2.25rem;
+  --control-sm: 1.75rem;
   --control-touch: 2.75rem;
   --icon: 18px;
   --icon-sm: 16px;

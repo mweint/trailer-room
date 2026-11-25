@@ -1,6 +1,6 @@
 // Plex setup inside the Programming sheet: sign-in hand-off, server picker, a switch per library, connect
 // and remove. The Plex group's Change and Remove links (programming.js) start these through the returned functions.
-import {$, el, reveal} from "../dom.js";
+import {$, el, resize, reveal} from "../dom.js";
 import {plexCall as call} from "../api.js";
 
 const flowKey = "trailer-room.plex-setup";
@@ -42,6 +42,15 @@ export function plexPreferences(sync) {
   let flow;
   let busy = false;
 
+  // The message line grows and shrinks with its text, like any region that appears in place.
+  function say(text) {
+    if (message.textContent !== text) {
+      resize(message, () => {
+        message.textContent = text;
+      }, !!text, true);
+    }
+  }
+
   function status(source) {
     state = source;
   }
@@ -52,7 +61,7 @@ export function plexPreferences(sync) {
       return;
     }
     busy = true;
-    message.textContent = "Opening Plex sign-in…";
+    say("Opening Plex sign-in…");
     try {
       const result = await call("begin");
       sessionStorage.setItem(flowKey, result.flow);
@@ -63,7 +72,7 @@ export function plexPreferences(sync) {
       }
       location.assign(result.url);
     } catch (error) {
-      message.textContent = error.message;
+      say(error.message);
       busy = false;
     }
   }
@@ -80,7 +89,7 @@ export function plexPreferences(sync) {
       save.disabled = !chosen(libraries).length;
     });
     save.disabled = !chosen(libraries).length;
-    message.textContent = entries.length ? "" : "This server has no accessible film libraries.";
+    say(entries.length ? "" : "This server has no accessible film libraries.");
   }
 
   // Change: the browser that connected Plex lists the server's libraries straight away; anywhere else signs in.
@@ -91,7 +100,7 @@ export function plexPreferences(sync) {
     if (!state) {
       return signIn();
     }
-    message.textContent = "Finding libraries…";
+    say("Finding libraries…");
     try {
       const result = await call("manage");
       if (result.signInRequired) {
@@ -103,7 +112,7 @@ export function plexPreferences(sync) {
       offer(result.libraries);
       reveal(picker, true);
     } catch (error) {
-      message.textContent = error.message;
+      say(error.message);
     }
   }
   $("plexOtherServer").onclick = () => signIn();
@@ -112,7 +121,7 @@ export function plexPreferences(sync) {
     sessionStorage.removeItem(flowKey);
     reveal(picker, false);
     await sync(true);
-    message.textContent = "";
+    say("");
   }
 
   async function resume() {
@@ -124,20 +133,25 @@ export function plexPreferences(sync) {
       const connection = sessionStorage.getItem(removalKey);
       if (connection) {
         sessionStorage.removeItem(removalKey);
-        message.textContent = "Removing Plex…";
+        say("Removing Plex…");
         await call("disconnect", {flow, connection});
         await removed();
         return;
       }
-      message.textContent = "Finding your servers…";
+      say("Finding your servers…");
       const result = await call("servers", {flow});
       signedIn(true);
       options(server, "Choose a server", result.servers);
       libraries.replaceChildren();
       reveal(picker, true);
-      message.textContent = result.servers.length ? "" : "No accessible Plex servers with secure connections were found.";
+      say(result.servers.length ? "" : "No accessible Plex servers with secure connections were found.");
+      // With a single server there is nothing to choose: take it and list its libraries.
+      if (result.servers.length === 1) {
+        server.value = result.servers[0].id;
+        server.onchange();
+      }
     } catch (error) {
-      message.textContent = error.message;
+      say(error.message);
     }
   }
 
@@ -145,11 +159,11 @@ export function plexPreferences(sync) {
     const selected = server.value;
     libraries.replaceChildren();
     save.disabled = true;
-    message.textContent = "";
+    say("");
     if (!selected) {
       return;
     }
-    message.textContent = "Finding libraries…";
+    say("Finding libraries…");
     try {
       const result = await call("libraries", {flow, server: selected});
       if (server.value !== selected) {
@@ -158,7 +172,7 @@ export function plexPreferences(sync) {
       offer(result.libraries);
     } catch (error) {
       if (server.value === selected) {
-        message.textContent = error.message;
+        say(error.message);
       }
     }
   };
@@ -166,7 +180,7 @@ export function plexPreferences(sync) {
     sessionStorage.removeItem(flowKey);
     flow = null;
     reveal(picker, false);
-    message.textContent = "";
+    say("");
   };
 
   async function connect() {
@@ -174,7 +188,7 @@ export function plexPreferences(sync) {
     const body = flow ? {flow, server: server.value, library} : {library};
     server.disabled = save.disabled = $("plexCancel").disabled = true;
     busy = true;
-    message.textContent = "Importing films…";
+    say("Importing films…");
     try {
       const result = await call("connect", body);
       if (result.signInRequired) {
@@ -183,9 +197,9 @@ export function plexPreferences(sync) {
       sessionStorage.removeItem(flowKey);
       reveal(picker, false);
       await sync(true);
-      message.textContent = "";
+      say("");
     } catch (error) {
-      message.textContent = error.message;
+      say(error.message);
     } finally {
       server.disabled = server.options.length < 2;
       save.disabled = !chosen(libraries).length;
@@ -205,7 +219,7 @@ export function plexPreferences(sync) {
     }
     const connection = state.connection;
     busy = true;
-    message.textContent = "Removing Plex…";
+    say("Removing Plex…");
     try {
       const result = await call("disconnect", {connection, ...(picker.hidden ? {} : {flow})});
       if (result.signInRequired) {
@@ -213,7 +227,7 @@ export function plexPreferences(sync) {
       }
       await removed();
     } catch (error) {
-      message.textContent = error.message;
+      say(error.message);
     } finally {
       busy = false;
     }

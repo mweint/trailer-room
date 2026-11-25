@@ -30,14 +30,27 @@ function timing(opening, moving = false) {
 // Used directly when a region's own content grows or shrinks (a chip group showing more chips).
 export function resize(node, change, opening, fade = false) {
   const from = node.getBoundingClientRect().height;
+  const padding = () => {
+    const style = getComputedStyle(node);
+    return [style.paddingTop, style.paddingBottom];
+  };
+  const paddingFrom = padding();
   node.getAnimations().forEach(animation => animation.cancel());
   change();
   const to = node.getBoundingClientRect().height;
+  const paddingTo = padding();
   if (still() || Math.abs(from - to) <= .5) {
     return;
   }
   // The closed state's max-height would cap the animated height, so it is lifted while the motion runs.
   const frames = {height: [from + "px", to + "px"], maxHeight: ["none", "none"]};
+  // A box cannot be shorter than its padding, so a region opening from nothing (or closing to nothing) takes its
+  // padding along; otherwise it would start, or end, a padding's height tall and the content below would jump.
+  if (from < .5 || to < .5) {
+    const open = from < .5 ? paddingTo : paddingFrom;
+    frames.paddingTop = from < .5 ? ["0px", open[0]] : [open[0], "0px"];
+    frames.paddingBottom = from < .5 ? ["0px", open[1]] : [open[1], "0px"];
+  }
   if (fade) {
     frames.opacity = opening ? [0, 1] : [1, 0];
     frames.visibility = ["visible", "visible"];
@@ -71,12 +84,19 @@ export function reveal(node, shown) {
     return;
   }
   const from = node.getBoundingClientRect().height;
+  const style = getComputedStyle(node);
+  const padding = [style.paddingTop, style.paddingBottom];
   node.getAnimations().forEach(animation => animation.cancel());
   if (still()) {
     node.hidden = true;
     return;
   }
-  const closing = node.animate({height: [from + "px", "0px"], opacity: [1, 0]}, timing(false));
+  const closing = node.animate({
+    height: [from + "px", "0px"],
+    paddingTop: [padding[0], "0px"],
+    paddingBottom: [padding[1], "0px"],
+    opacity: [1, 0]
+  }, timing(false));
   closing.onfinish = () => {
     node.hidden = true;
   };

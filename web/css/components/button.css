@@ -62,9 +62,7 @@
 /* Text: an action that stands on its own (Change, Remove, Restore, More, Cancel). No underline; dimmer text
    that brightens, with the usual hover fill. */
 .button--text {
-  --button-text-height: 1.75rem;
   --button-inset: var(--space-2);
-  min-height: var(--button-text-height);
   padding-block: 0;
   color: var(--color-text-secondary);
 }

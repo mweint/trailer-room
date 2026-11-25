@@ -13,6 +13,7 @@
 
 /* Fully closed: the content fades and leaves the tab order and accessibility tree. */
 .collapse[data-collapsed]:not(.collapse--preview) {
+  padding-block: 0;
   opacity: 0;
   visibility: hidden;
 }

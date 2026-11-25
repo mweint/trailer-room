@@ -9,13 +9,13 @@
   gap: var(--space-2);
 }
 
-/* Text trimmed to cap height, as in the button, so the label centres optically in the pill. */
+/* Text trimmed to cap height, as in the button, so the label centres optically in the pill. Height is the
+   control height of where it sits (compact inside a dialog). */
 .chip {
-  --chip-height: 1.75rem;
   text-box: trim-both cap alphabetic;
   display: inline-flex;
   align-items: center;
-  min-height: var(--chip-height);
+  min-height: var(--control);
   padding: 0 var(--space-3);
   background: transparent;
   border: 1px solid var(--color-border-strong);
@@ -39,12 +39,6 @@
   background: var(--color-text);
   border-color: var(--color-text);
   color: var(--color-bg);
-}
-
-@media (pointer: coarse) {
-  .chip {
-    --chip-height: var(--control);
-  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
