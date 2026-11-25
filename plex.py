@@ -1,5 +1,6 @@
 """Optional installation-wide Plex film source. Only discovery-issued server tokens persist."""
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -145,14 +146,35 @@ class PlexSource:
                   "forwardUrl": origin + "/#plex-setup"}
         return {"flow": ticket, "url": "https://app.plex.tv/auth#?" + urlencode(params)}
 
-    def action(self, action, body):
+    def connection_id(self):
+        data = self.saved
+        return data.get("connection") or hashlib.sha256((data["server"]["client"] + "/" + data["key"]).encode()).hexdigest()
+
+    def remove(self, expected):
+        # Caller holds self.lock. Invalidate pending imports and refreshes as well.
+        if self.saved and expected and expected != self.connection_id():
+            raise PlexError("The selected library changed. Reload before removing it.")
+        self.path.unlink(missing_ok=True)
+        self.saved, self.rows, self.running = None, [], None
+        self.flows.clear()
+
+    def action(self, action, body, device_key=""):
+        if action == "disconnect" and not body.get("flow"):
+            with self.lock:
+                if not self.saved:
+                    return {}
+                digest = hashlib.sha256(device_key.encode()).hexdigest()
+                if not device_key or not secrets.compare_digest(digest, self.saved.get("device_hash", "")):
+                    return {"signInRequired": True}
+                self.remove(body.get("connection"))
+                return {}
         ticket = body.get("flow")
         with self.lock:
             flow = self.flows.get(ticket)
         if not flow or flow["until"] <= time.monotonic():
             raise PlexError("Plex sign-in expired. Start again.")
         with flow["lock"]:
-            if action == "servers" and "servers" not in flow:
+            if action in ("servers", "disconnect") and "owner" not in flow:
                 client = flow["client"]
                 token = request(f"https://plex.tv/api/v2/pins/{flow['pin']}", client).get("authToken")
                 if not token:
@@ -160,7 +182,9 @@ class PlexSource:
                 owner = str(request("https://plex.tv/api/v2/user", client, token)["id"])
                 with self.lock:
                     self.check_owner(owner)
-                flow.update(owner=owner, servers=discover(client, token))
+                if action == "servers":
+                    flow["servers"] = discover(client, token)
+                flow["owner"] = owner
             if "owner" not in flow:
                 raise PlexError("Sign in to Plex first.")
             if action == "servers":
@@ -170,9 +194,7 @@ class PlexSource:
                     self.check_owner(flow["owner"])
                     if self.flows.get(ticket) is not flow:
                         raise PlexError("The connection changed. Start again.")
-                    self.path.unlink(missing_ok=True)
-                    self.saved, self.rows, self.running = None, [], None
-                    self.flows.clear()
+                    self.remove(body.get("connection"))
                 return {}
             server = flow["servers"].get(body.get("server"))
             if not server:
@@ -191,12 +213,14 @@ class PlexSource:
                 self.check_owner(flow["owner"])
                 if self.flows.get(ticket) is not flow:
                     raise PlexError("The connection changed. Start again.")
+                device_key = secrets.token_urlsafe(32)
                 self.write({"owner": flow["owner"], "server": server, "key": key, "library": library,
+                            "connection": uuid4().hex, "device_hash": hashlib.sha256(device_key.encode()).hexdigest(),
                             "rows": rows, "updated": now, "attempted": now, "error": ""})
                 self.rows = [self.register(row) for row in rows]
                 self.running = None
                 self.flows.clear()
-            return {}
+            return {"device_key": device_key}
 
     def check_owner(self, owner):
         if self.saved and self.saved["owner"] != owner:
@@ -238,5 +262,6 @@ class PlexSource:
                 snapshot["catalogs"]["plex"] = self.rows
                 snapshot["sources"]["plex"] = {k: self.saved[k] for k in ("updated", "attempted", "error")}
                 snapshot["sources"]["plex"].update(name=self.saved["library"]["name"], server=self.saved["server"]["name"],
+                                                   connection=self.connection_id(),
                                                    refreshing=self.running is not None)
         return snapshot

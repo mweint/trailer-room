@@ -202,6 +202,12 @@ aside { display: grid; gap: var(--space-6); }
 .queue-sub { line-height: 1.125rem; margin-top: 2px; }
 .sources { padding-top: var(--space-4); border-top: 1px solid var(--line); }
 #sources { margin-top: var(--space-2); }
+#sourcesToggle { font: inherit; letter-spacing: inherit; padding-inline: 0; }
+#sourcesToggle svg { width: 16px; height: 16px; color: var(--muted); }
+#sourcesToggle[aria-expanded=false] svg { transform: rotate(-90deg); }
+.unrated-option, .plex-library-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.unrated-option { position: relative; grid-column: 1 / -1; min-height: 44px; cursor: pointer; }
+.plex-library-row button { flex: none; }
 .source {
   display: grid; grid-template-columns: 40px minmax(0, 1fr) 29px;
   gap: var(--space-3); min-height: 2.5rem; position: relative; text-align: left;

@@ -1,4 +1,4 @@
-import {SOURCES, US_RATINGS, mergeSources, matches, withinRating} from "./queue.js";
+import {SOURCES, US_RATINGS, mergeSources, matches, withinRating, posterUrls} from "./queue.js";
 import {plexPreferences} from "./plex.js";
 
 const $ = id => document.getElementById(id);
@@ -7,6 +7,8 @@ let saved = {};
 try { saved = JSON.parse(localStorage.getItem(STORE)) || {}; } catch {}
 const prefs = {enabled: {criterion: true, a24: true, neon: true, janus: true, ...saved.enabled},
   maxRating: US_RATINGS.includes(saved.maxRating) ? saved.maxRating : "",
+  includeUnrated: typeof saved.includeUnrated === "boolean" ? saved.includeUnrated : null,
+  sourcesCollapsed: !!saved.sourcesCollapsed,
   hidden: saved.hidden || [], skipped: saved.skipped || [], crt: !!saved.crt, wide: !!saved.wide,
   volume: saved.volume ?? null, muted: !!saved.muted};
 const catalogs = {};
@@ -44,7 +46,8 @@ function detail(film) {
   }
   return details.get(film.key);
 }
-function enabled(film) { return film.sources.some(s => prefs.enabled[s]) && withinRating(film, prefs.maxRating); }
+function fitsRating(film) { return withinRating(film, prefs.maxRating, prefs.includeUnrated ?? !prefs.maxRating); }
+function enabled(film) { return film.sources.some(s => prefs.enabled[s]) && fitsRating(film); }
 function hidden(film) { return prefs.hidden.some(h => h.keys.some(key => film.keys.includes(key))); }
 function playableClips(data) {
   return data.videos.filter(v => !broken.has(videoKey(v)) && !seenVideos.has(videoKey(v)) &&
@@ -57,23 +60,40 @@ function rebuild(paint = true) {
   if (paint) renderQueue();
   return eligible;
 }
+function queueRow(film) {
+  const li = el("li"), button = el("button"), text = el("span");
+  const fallback = el("span", "poster", film.title[0]);
+  fallback.setAttribute("aria-hidden", "true");
+  button.append(fallback, text);
+  text.append(el("span", "queue-title", film.title), el("span", "queue-sub", film.year));
+  li.append(button);
+  li.dataset.id = film.id;
+  li.loadPoster = () => {
+    li.loadPoster = null;
+    const urls = posterUrls(film);
+    if (!urls.length) return;
+    const img = el("img");
+    img.alt = ""; img.width = 38; img.height = 56; img.decoding = "async";
+    img.onload = () => fallback.replaceWith(img);
+    img.onerror = () => { if (urls.length) img.src = urls.shift(); };
+    img.src = urls.shift();
+  };
+  return li;
+}
 function renderQueue() {
   const pending = !queue.length && Object.keys(SOURCES).some(s => prefs.enabled[s] && !loaded.has(s));
   $("queue").closest(".lineup").setAttribute("aria-busy", String(pending));
-  $("queue").replaceChildren();
+  const list = $("queue");
+  const previous = new Map(Array.from(list.children, row => [row.dataset.id, row]));
   $("remaining").textContent = queue.length ? queue.length.toLocaleString() + " queued" : "";
-  for (const film of queue.slice(0, 12)) {
-    const button = el("button"), li = el("li"), text = el("span");
-    const fallback = el("span", "poster", film.title[0]);
-    fallback.setAttribute("aria-hidden", "true");
-    if (film.imdb || film.poster) {
-      const img = el("img"); img.alt = ""; img.loading = "lazy";
-      img.src = film.poster || "https://images.metahub.space/poster/small/" + film.imdb + "/img";
-      img.onerror = () => img.replaceWith(fallback); button.append(img);
-    } else button.append(fallback);
-    text.append(el("span", "queue-title", film.title), el("span", "queue-sub", film.year));
-    button.append(text); button.onclick = () => skipTo(film); li.append(button); $("queue").append(li);
+  // Keep the existing image nodes when the next film moves up a row.
+  const preview = queue.slice(0, 13);
+  for (const [index, film] of preview.entries()) {
+    const row = previous.get(film.id) || queueRow(film);
+    row.firstChild.onclick = () => skipTo(film);
+    if (list.children[index] !== row) list.insertBefore(row, list.children[index] || null);
   }
+  while (list.children.length > preview.length) list.lastChild.remove();
   $("queueEmpty").textContent = queue.length || pending ? "" :
     Object.keys(SOURCES).some(s => prefs.enabled[s]) ? "No more films in this queue." : "Select a film source to build your queue.";
   fitQueuePreview();
@@ -92,19 +112,24 @@ function fitQueuePreview() {
     slots = Math.max(4, Math.min(12, Math.floor(available / rowHeight)));
   }
   preview.style.setProperty("--queue-rows", slots);
-  const extra = Array.from(list.children).slice(4);
-  extra.forEach((row, i) => { row.hidden = i + 4 >= slots; });
+  const rows = Array.from(list.children);
+  rows.forEach((row, i) => { row.hidden = i >= slots; });
   // Wrapped titles can consume more than one slot.
   const limit = list.getBoundingClientRect().top + preview.clientHeight;
-  const overflow = extra.filter(row => !row.hidden && row.getBoundingClientRect().bottom > limit + .5);
+  const overflow = rows.slice(4).filter(row => !row.hidden && row.getBoundingClientRect().bottom > limit + .5);
   for (const row of overflow) row.hidden = true;
+  let preloadNext = !navigator.connection?.saveData;
+  for (const row of list.children) {
+    if (!row.hidden) row.loadPoster?.();
+    else if (preloadNext) { row.loadPoster?.(); preloadNext = false; }
+  }
 }
 function renderSources() {
   const focused = $("sources").contains(document.activeElement) ? document.activeElement.dataset.source : null;
   $("sources").replaceChildren();
   for (const [key, {name, logo: file}] of Object.entries(SOURCES)) {
     const label = el("label", "source"), input = el("input"), text = el("span","source-details");
-    const total = films.filter(f => f.sources.includes(key) && withinRating(f, prefs.maxRating)).length;
+    const total = films.filter(f => f.sources.includes(key) && fitsRating(f)).length;
     const count = loaded.has(key) ? total.toLocaleString() + (total === 1 ? " film" : " films") : "Loading…";
     text.append(el("span", "source-name", name), el("span", "count", count));
     input.type = "checkbox"; input.checked = !!prefs.enabled[key]; input.dataset.source = key; input.setAttribute("aria-label", name);
@@ -656,12 +681,26 @@ $("full").onclick = async () => {
 document.addEventListener("fullscreenchange",fullscreenControls);
 for (const rating of US_RATINGS) $("maxRating").add(new Option(rating, rating));
 $("maxRating").value = prefs.maxRating;
-$("ratingHint").hidden = !prefs.maxRating;
+function ratingControls() {
+  $("ratingHint").hidden = !prefs.maxRating;
+  $("includeUnrated").checked = prefs.includeUnrated ?? !prefs.maxRating;
+}
+ratingControls();
 $("maxRating").onchange = () => {
   prefs.maxRating = $("maxRating").value;
-  $("ratingHint").hidden = !prefs.maxRating;
+  ratingControls();
   save(); setNotice(); sourcesChanged();
 };
+$("includeUnrated").onchange = () => {
+  prefs.includeUnrated = $("includeUnrated").checked;
+  save(); setNotice(); sourcesChanged();
+};
+function showSourceOptions() {
+  $("sourceOptions").hidden = prefs.sourcesCollapsed;
+  $("sourcesToggle").setAttribute("aria-expanded", String(!prefs.sourcesCollapsed));
+}
+showSourceOptions();
+$("sourcesToggle").onclick = () => { prefs.sourcesCollapsed = !prefs.sourcesCollapsed; showSourceOptions(); save(); };
 function preferences() {
   for (const [field,id,none] of [["hidden","hiddenList","No hidden movies."],["skipped","skippedList","No skipped trailers."]]) {
     const list = $(id); list.replaceChildren();

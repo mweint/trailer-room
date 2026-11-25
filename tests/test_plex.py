@@ -71,6 +71,42 @@ class PlexTests(unittest.TestCase):
     def snapshot(self):
         return self.source.include({"sources": {}, "catalogs": {}})
 
+    def test_owner_browser_removal_works_offline_after_restart(self):
+        flow = dict(self.sign_in(), server="home")
+        self.source.action("libraries", flow)
+        key = self.source.action("connect", dict(flow, library="7"))["device_key"]
+        self.source = plex.PlexSource(self.root, dict)
+        body = {"connection": self.snapshot()["sources"]["plex"]["connection"]}
+        self.assertNotIn(key, self.source.path.read_text())
+        self.assertNotIn(key, json.dumps(self.snapshot()))
+        with patch("plex.request", side_effect=AssertionError("Unexpected network request")):
+            self.assertTrue(self.source.action("disconnect", body, "wrong")["signInRequired"])
+            with self.assertRaises(plex.PlexError):
+                self.source.action("disconnect", {"connection": "old-library"}, key)
+            self.source.action("disconnect", body, key)
+        self.assertFalse(self.source.path.exists())
+
+    def test_existing_installation_removal_only_needs_owner_sign_in(self):
+        flow = dict(self.sign_in(), server="home")
+        self.source.action("libraries", flow)
+        self.source.action("connect", dict(flow, library="7"))
+        legacy = dict(self.source.saved)
+        del legacy["device_hash"], legacy["connection"]
+        self.source.write(legacy)
+        body = {"connection": self.snapshot()["sources"]["plex"]["connection"]}
+        self.assertTrue(self.source.action("disconnect", body)["signInRequired"])
+        self.remote.owner = "another-account"
+        with patch("plex.discover", side_effect=AssertionError("Unnecessary discovery")):
+            for owner in ("another-account", "test-user"):
+                self.remote.owner = owner
+                body["flow"] = self.source.begin("http://localhost:8765")["flow"]
+                if owner == "another-account":
+                    with self.assertRaises(plex.PlexError):
+                        self.source.action("disconnect", body)
+                else:
+                    self.source.action("disconnect", body)
+        self.assertFalse(self.source.path.exists())
+
     def test_explicit_choices_import_refresh_restart_and_disconnect(self):
         self.assertEqual(self.snapshot()["sources"], {})
         self.assertFalse(self.remote.calls)

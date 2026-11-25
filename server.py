@@ -5,6 +5,7 @@ import functools
 import hashlib
 import ipaddress
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.cookies import SimpleCookie, CookieError
 import json
 import mimetypes
 import os
@@ -126,11 +127,13 @@ def allowed_host(header, port, lan):
 
 
 class Handler(BaseHTTPRequestHandler):
-    def send(self, code, body, content_type):
+    def send(self, code, body, content_type, cookie=None):
         self.send_response(code)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        if cookie:
+            self.send_header("Set-Cookie", cookie)
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         self.end_headers()
@@ -139,8 +142,8 @@ class Handler(BaseHTTPRequestHandler):
         except (ConnectionError, OSError):
             pass
 
-    def data(self, obj, code=200):
-        self.send(code, json.dumps(obj).encode(), "application/json")
+    def data(self, obj, code=200, cookie=None):
+        self.send(code, json.dumps(obj).encode(), "application/json", cookie)
 
     def do_POST(self):
         host = self.headers.get("Host", "")
@@ -168,8 +171,21 @@ class Handler(BaseHTTPRequestHandler):
             except (ValueError, UnicodeError):
                 return self.data({"error": "Invalid Plex request."}, 400)
             try:
-                result = plex.begin(origin) if action == "begin" else plex.action(action, body)
-                return self.data(result)
+                cookies = SimpleCookie()
+                try:
+                    cookies.load(self.headers.get("Cookie", ""))
+                except CookieError:
+                    pass
+                device = cookies.get("tr_plex_remove")
+                result = plex.begin(origin) if action == "begin" else plex.action(action, body, device.value if device else "")
+                cookie = None
+                if "device_key" in result or (action == "disconnect" and not result):
+                    key = result.pop("device_key", "")
+                    age = 31536000 if key else 0
+                    cookie = f"tr_plex_remove={key}; Max-Age={age}; Path=/api/plex/; HttpOnly; SameSite=Strict"
+                    if origin.startswith("https://"):
+                        cookie += "; Secure"
+                return self.data(result, cookie=cookie)
             except PlexError as exc:
                 return self.data({"error": str(exc)}, 400)
             except (OSError, ValueError, KeyError, TypeError):
@@ -213,6 +229,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     bind = os.getenv("TRAILER_ROOM_BIND", "127.0.0.1")
     address = "http://127.0.0.1:8765/"
+    if os.name == "nt":
+        ThreadingHTTPServer.allow_reuse_address = False
     try:
         server = ThreadingHTTPServer((bind, 8765), Handler)
     except OSError:

@@ -22,7 +22,9 @@ Open **Preferences → Connect Plex**, sign in with Plex, and choose a server. T
 
 The connection belongs to this installation. Everyone who can open it can see the selected titles. The server saves the selected library's metadata and Plex server credential in its appdata. It contacts Plex over HTTPS and plays public trailers through YouTube or Vimeo. No SSH access, media mount, or Compose changes are required.
 
-A startup or visit checks for changes once a day. If Plex is unreachable, the source shows its last good list and offers a retry. To switch libraries or disconnect, use **Manage Plex connection** and sign in with the same Plex account. Disconnecting removes the saved library and server credential from appdata.
+A startup or visit checks for changes once a day. If Plex is unreachable, the source shows its last good list and offers a retry. In Preferences, **Change library** opens the picker. **Remove library** asks for confirmation and clears the imported list and server credential from this installation. The browser that connected the library can remove it directly. For older connections, other browsers, or after clearing cookies, Plex asks the owner to sign in.
+
+Under **Film sources**, set the maximum U.S. rating and choose whether to include explicitly unrated films. With a limit set, unrated films start off and unknown ratings are always skipped. Click **Film sources** to collapse the controls. Each browser remembers its choices.
 
 ## Catalog updates
 

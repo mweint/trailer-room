@@ -7,9 +7,29 @@ export const SOURCES = {
 
 export const US_RATINGS = ["G", "PG", "PG-13", "R", "NC-17"];
 
-export function withinRating(film, maximum) {
-  const rank = US_RATINGS.indexOf(film.certification);
+export function withinRating(film, maximum, includeUnrated = !maximum) {
+  if (film.certification === "Unrated") {
+    if (!includeUnrated) return false;
+    if (!film.ratedCertification) return true;
+  }
+  const rank = US_RATINGS.indexOf(film.ratedCertification || film.certification);
   return !maximum || (rank >= 0 && rank <= US_RATINGS.indexOf(maximum));
+}
+
+export function posterUrls(film) {
+  const imdbPoster = film.imdb && "https://images.metahub.space/poster/small/" + film.imdb + "/img";
+  let url;
+  try { url = new URL(film.poster); } catch { return imdbPoster ? [imdbPoster] : []; }
+  if (url.protocol !== "https:") return imdbPoster ? [imdbPoster] : [];
+  if (url.hostname === "api-asset-production.s3.amazonaws.com") {
+    return ["https://a24films.com/_next/image?" + new URLSearchParams({url: url.href, w: 96, q: 75}), imdbPoster].filter(Boolean);
+  }
+  if (url.hostname.endsWith(".datocms-assets.com")) {
+    for (const [key, value] of Object.entries({w: 96, h: 144, fit: "crop", auto: "format", q: 70})) {
+      url.searchParams.set(key, value);
+    }
+  }
+  return [...new Set([url.href, imdbPoster].filter(Boolean))];
 }
 
 export function mergeSources(catalogs) {
@@ -22,6 +42,7 @@ export function mergeSources(catalogs) {
   }
   const merged = new Map();
   for (const row of records) {
+    if (/^(?:nr|ur|not rated|unrated)$/i.test((row.certification || "").trim())) row.certification = "Unrated";
     const ids = idsByAlias.get(row.alias);
     const id = row.imdb || (ids?.size === 1 ? [...ids][0] : row.key);
     let film = merged.get(id);
@@ -34,6 +55,9 @@ export function mergeSources(catalogs) {
     if (!film.sources.includes(row.source)) film.sources.push(row.source);
     if (row.key === id) film.key = id;
     film.imdb ||= row.imdb;
+    if (US_RATINGS.indexOf(row.certification) > US_RATINGS.indexOf(film.ratedCertification)) {
+      film.ratedCertification = row.certification;
+    }
     if (row.certification === "Unrated" || (film.certification !== "Unrated" &&
         US_RATINGS.indexOf(row.certification) > US_RATINGS.indexOf(film.certification))) {
       film.certification = row.certification;
