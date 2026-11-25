@@ -24,7 +24,7 @@ jobs:
           id=$(docker compose ps -q trailer-room)
           docker compose exec -T trailer-room sh -c 'grep "^Uid:" /proc/1/status | grep -qw 1000'
           docker compose exec -T -u 1000:1000 trailer-room sh -c 'touch /data/.write-check && rm /data/.write-check'
-          test "$(stat -c '%u:%g' /data/appdata/trailer-room)" = "1000:1000"
+          test "$(stat -c '%u:%g' trailer-room)" = "1000:1000"
           docker image inspect "$(docker inspect -f '{{.Image}}' "$id")" --format 'Image bytes {{.Size}}'
           for i in $(seq 1 35); do
             if curl -fsS localhost:8765/api/collections | python3 -c 'import json,sys; sys.exit(any(s["refreshing"] for s in json.load(sys.stdin)["sources"].values()))'; then break; fi

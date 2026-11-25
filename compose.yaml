@@ -2,12 +2,7 @@ services:
   trailer-room:
     image: ghcr.io/mweint/trailer-room:latest
     ports:
-      - "${TRAILER_ROOM_PORT:-8765}:8765"
-    environment:
-      PUID: "${PUID:-1000}"
-      PGID: "${PGID:-1000}"
-      CATALOG_REFRESH_DAYS: "${CATALOG_REFRESH_DAYS:-30}"
-      TRAILER_ROOM_HOSTS: "${TRAILER_ROOM_HOSTS:-}"
+      - "8765:8765"
     volumes:
-      - /data/appdata/trailer-room:/data
+      - ./trailer-room:/data
     restart: unless-stopped
