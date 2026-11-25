@@ -25,14 +25,21 @@
   transform: rotate(-90deg);
 }
 
-/* Collapsing animates the height; the clip margin leaves room for focus rings. */
+/* Collapsing animates a one-row grid from 1fr to 0fr, which every current browser can interpolate.
+   The body clips while it shrinks; the clip margin leaves room for focus rings. */
 .source-options {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+
+.source-options-body {
+  min-height: 0;
   overflow: clip;
   overflow-clip-margin: var(--space-2);
 }
 
 .sources:has(.sources-toggle[aria-expanded=false]) .source-options {
-  height: 0;
+  grid-template-rows: 0fr;
   opacity: 0;
   visibility: hidden;
 }
@@ -44,7 +51,7 @@
 
   .source-options {
     transition:
-      height var(--motion-layout) var(--ease-layout),
+      grid-template-rows var(--motion-layout) var(--ease-layout),
       opacity var(--motion-layout) var(--ease-layout),
       visibility var(--motion-layout);
   }

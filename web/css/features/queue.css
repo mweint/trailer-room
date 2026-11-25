@@ -87,8 +87,9 @@
   --button-inset: var(--queue-inset);
   display: flex;
   width: calc(100% + 2 * var(--button-inset));
-  /* One inset on every side of the poster. */
+  /* One inset on every side of the poster, and corners concentric with it: poster radius + inset ≈ --radius-lg. */
   padding-block: var(--button-inset);
+  border-radius: var(--radius-lg);
   padding-inline-end: calc(var(--control) + var(--space-2));
   gap: var(--space-3);
   text-align: left;
