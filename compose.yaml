@@ -1,0 +1,19 @@
+services:
+  trailer-room:
+    build: .
+    ports:
+      - "${TRAILER_ROOM_PORT:-8765}:8765"
+    environment:
+      CATALOG_REFRESH_DAYS: "${CATALOG_REFRESH_DAYS:-30}"
+      TRAILER_ROOM_HOSTS: "${TRAILER_ROOM_HOSTS:-}"
+    volumes:
+      - catalogs:/data
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  catalogs:
