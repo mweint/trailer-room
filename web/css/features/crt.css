@@ -1,4 +1,4 @@
-/* CRT: the raster layer (scanlines, aperture grille, vignette, glass edge), shown while .screen has data-crt. Values here are optical constants, not tokens. */
+/* CRT: the raster layer (scanlines, vignette, glass edge), shown while .screen has data-crt. Values here are optical constants, not tokens. */
 .raster,
 .raster svg {
   position: absolute;
@@ -30,10 +30,9 @@
   content: "";
   position: absolute;
   inset: 0;
-  /* Blend with the playing picture inside .screen. Mid-gray is neutral in overlay mode. */
-  mix-blend-mode: overlay;
+  /* Scanline shadows laid over the picture with plain transparency (no blend mode: see crt.js). */
   background-image: var(--tube-texture);
-  background-size: var(--triad, 3px) var(--beam, 3px);
+  background-size: 100% var(--beam, 3px);
   image-rendering: pixelated;
 }
 

@@ -9,8 +9,7 @@
   --dock-mark-width: 12px;
   --dock-mark-height: 2px;
   --dock-mark-offset: 3px;
-  --dock-tool-width: 50px;
-  --dock-tool-gap: 2px;
+  --dock-check: 10px;
   position: absolute;
   z-index: 2;
   inset: auto 0 0;
@@ -179,45 +178,70 @@
       position: relative;
     }
 
+    /* The folded tools are a menu like the film options (components/menu.css): a page surface holding full-width
+       rows, each an icon and its label side by side, a check at the end when the setting is on. */
     .view-tools {
       display: none;
       position: absolute;
       right: 0;
       bottom: calc(100% + var(--space-1));
+      width: max-content;
       padding: var(--space-1);
-      gap: var(--dock-tool-gap);
-      border: 1px solid var(--color-border-strong);
+      border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       background: var(--color-surface-raised);
+      box-shadow: 0 4px 16px color-mix(in srgb, var(--color-bg) 40%, transparent);
     }
 
     .view-more[aria-expanded=true] + .view-tools {
-      display: flex;
+      display: grid;
     }
 
     .view-tools .view-button {
-      width: auto;
-      min-width: var(--dock-tool-width);
-      padding: var(--space-1);
-      flex-direction: column;
-      gap: var(--dock-tool-gap);
+      inline-size: auto;
+      justify-content: flex-start;
+      gap: var(--space-3);
+      padding-inline: var(--space-3);
+      border-radius: var(--radius-md);
+      color: var(--color-text);
+      text-shadow: none;
     }
 
+    .view-tools .view-button .icon {
+      filter: none;
+      color: var(--color-text-muted);
+    }
+
+    /* The label, from the button's accessible name. */
     .view-tools .view-button::before {
       content: attr(aria-label);
       order: 1;
       white-space: nowrap;
-      font: 500 var(--text-meta)/1.25 var(--font-ui);
+      font: 400 var(--control-text) var(--font-ui);
     }
 
-    /* The popover is a page surface, not the picture, so its buttons take the page's fill. */
-    .view-tools .view-button:hover:enabled,
-    .view-tools .view-button[aria-pressed=true] {
+    /* The popover is a page surface, not the picture, so its rows take the page's hover fill. */
+    .view-tools .view-button:hover:enabled {
       background: var(--color-hover);
+      color: var(--color-text);
+    }
+
+    /* On: a check at the end of the row, in place of the bar under the button on the picture. */
+    .view-tools .view-button[aria-pressed] {
+      padding-inline-end: calc(var(--space-3) * 2 + var(--dock-check));
     }
 
     .view-tools .view-button[aria-pressed=true]::after {
-      display: none;
+      top: calc(50% - var(--dock-check) * .6);
+      right: var(--space-3);
+      bottom: auto;
+      width: calc(var(--dock-check) / 2.5);
+      height: var(--dock-check);
+      border: solid currentColor;
+      border-width: 0 2px 2px 0;
+      border-radius: 0;
+      background: none;
+      transform: rotate(45deg);
     }
   }
 }

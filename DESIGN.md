@@ -82,7 +82,7 @@ Every piece of text has one role, and each role has one size, weight and colour.
 - Style by **class**. IDs are for JavaScript, `label for`, and ARIA only and never appear in a selector.
 - State comes from attributes the markup already needs (`[hidden]`, `[disabled]`, `[aria-pressed]`, `[aria-expanded]`, `[aria-busy]`, `[open]`) or a `data-*` attribute on the component root. No state classes invented per case.
 - State attributes set by JavaScript: `data-crt` on `.screen`; `data-controls="hidden"`, `data-hover="local"` and `data-transport` on `.display`; `data-theater` on `.page`; `data-expanded` on `.theater`.
-- No `style="…"` attributes. JavaScript writes only these custom properties: `--fill` (range), `--queue-height` (queue), `--art` (screen artwork), `--beam` `--triad` `--tube-texture` (CRT).
+- No `style="…"` attributes. JavaScript writes only these custom properties: `--fill` (range), `--queue-height` (queue), `--art` (screen artwork), `--beam` `--tube-texture` (CRT).
 - **Motion is applied by kind, never per place.** Every change that moves or shows something is one of three kinds, and each has one implementation:
   1. *In place.* A region opens, closes, appears or disappears (Programming, the description, Plex setup steps, the no-match note, the hidden and skipped lists; `resize(node, change)` when a region's own content grows, like a chip group). It carries `.collapse` and changes only through `expand(toggle, open)` (the region named by the toggle's `aria-controls`) or `reveal(node, shown)` in `dom.js`. These measure the height before and after the change and animate between the two, with the content fading, using `--ease-out` over `--motion-layout` when opening and `--motion-layout-exit` when closing. This works in every browser and for partial states (a preview's first lines). Closed regions get `visibility: hidden`, so they leave the tab order. Neighbours that size from them (the queue) follow frame by frame. No feature writes its own height transition.
   2. *Overlays.* Menus open from their trigger at `scale(.95)` with a fade (menu CSS) and close instantly. Dialogs open and close only through `openDialog()` / `closeDialog()` in `dom.js`: a centred dialog grows from `scale(.95)`, a sheet slides in from its edge, both fade with their backdrop, and closing runs the same motion faster. Esc, the close button (an icon X at the end of the heading) and a click outside all close it.
@@ -118,7 +118,7 @@ Primitives (`web/css/components/`), reused everywhere:
 | Check | `.check` | A square tick box for picking items from a list to add (Plex libraries). A switch turns something on or off; a check chooses. Sits in a switch row in place of the switch. |
 | Switch row | `.switch-row` | A label holding a name (`.switch-row-label`), an optional count and a switch (or a check, or a select), `--row` tall: plain settings and Plex libraries |
 | Select | `.select` | Native select with control text (`--text-ui`) and its arrow replaced by a chevron, inset from the right edge by the same `--space-3` as the text from the left. Features may size it (width) but never restyle it. |
-| Menu | `.menu` | film options. The compact view-tools popover is part of the dock, because the same buttons sit inline at every other width. |
+| Menu | `.menu` | film options. A menu is full-width rows on a raised surface, each an icon and its label side by side, `--control` tall, with a check at the end for a setting that is on. The compact view-tools popover is part of the dock, because the same buttons sit inline at every other width, but it is drawn as this menu. |
 | Panel heading | `.panel-heading` | — |
 | Dialog | `.dialog` | `--sheet` (docked to the right edge, full height) |
 | Spinner | `.spinner` | on pill, on picture |
@@ -131,7 +131,7 @@ Features (`web/css/features/` and `web/js/ui/`). Each has a CSS file; the module
 | --- | --- | --- | --- |
 | Masthead | `.mast` | `preferences.js` (button only) | Wordmark, Programming button |
 | Screen | `.screen` | `screen.js` | Artwork, embed, cover, play pill |
-| CRT | `.screen[data-crt]` | `crt.js` | A raster blended over the picture: scanlines and aperture grille, a vignette and the rounded glass edge. It looks the same in every browser: effects that need the picture's pixels (bloom, convergence) are left out, because a YouTube or Vimeo frame cannot be read or filtered alike everywhere. |
+| CRT | `.screen[data-crt]` | `crt.js` | A raster laid over the picture with plain transparency: scanline shadows, a vignette and the rounded glass edge. It looks the same in every browser: no blend modes (iOS Safari paints a blended layer over video as solid grey), and no effects that need the picture's pixels (bloom, convergence), because a YouTube or Vimeo frame cannot be read or filtered alike everywhere. |
 | Dock | `.dock` | `dock.js`, `transport.js` | Auto-hide and view tools; title, timeline, transport buttons, volume |
 | Film info | `.film-info` | `film-info.js` | Title, credit, facts, description (three lines, More), film options menu |
 | Queue | `.queue` | `queue.js` | Up-next list, poster loading as rows scroll into view, list height |

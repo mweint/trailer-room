@@ -2,9 +2,10 @@
 import {$} from "../dom.js";
 import {pref, setPref, savePrefs} from "../prefs.js";
 
-// Bake one physical RGB stripe (three device pixels wide) and one scanline period (pitch device pixels tall).
-// The browser composites this tile over the live iframe, so the player never copies or reads a video frame.
-// Each value is an overlay-blend level: .5 leaves the picture as it is, more brightens, less darkens.
+// Bake one scanline period (pitch device pixels tall): black whose opacity is the shadow between beams. The browser
+// lays this tile over the live iframe with plain transparency, so the player never reads a video frame, and every
+// browser draws it alike: iOS Safari cannot blend a video with a blend mode and paints a blended layer as solid grey.
+const GAP_SHADOW = 0.23;
 const textures = new Map();
 
 function beamTexture(pitch) {
@@ -12,22 +13,14 @@ function beamTexture(pitch) {
     return textures.get(pitch);
   }
   const canvas = document.createElement("canvas");
-  canvas.width = 3;
+  canvas.width = 1;
   canvas.height = pitch;
   const context = canvas.getContext("2d");
-  const image = context.createImageData(3, pitch);
+  const image = context.createImageData(1, pitch);
   for (let row = 0; row < pitch; row++) {
-    // The bright beam fills the bottom row of the period and fades into the dark gap between lines.
+    // The beam fills the bottom row of the period and fades into the dark gap between lines.
     const gap = 0.5 - 0.5 * Math.cos(2 * Math.PI * (pitch - 1 - row) / pitch);
-    const beam = 0.525 - 0.12 * gap * gap;
-    for (let column = 0; column < 3; column++) {
-      for (let channel = 0; channel < 3; channel++) {
-        // Column 0 leans red, 1 green, 2 blue: the phosphor stripes of an aperture grille.
-        const level = beam + (channel === column ? 0.018 : -0.009);
-        image.data[(row * 3 + column) * 4 + channel] = Math.round(level * 255);
-      }
-      image.data[(row * 3 + column) * 4 + 3] = 255;
-    }
+    image.data[row * 4 + 3] = Math.round(GAP_SHADOW * gap * gap * 255);
   }
   context.putImageData(image, 0, 0);
   const url = canvas.toDataURL();
@@ -43,7 +36,6 @@ function sizeTube() {
   const dpr = window.devicePixelRatio || 1;
   const pitch = Math.max(2, Math.round(screen.clientHeight * dpr / 420));
   screen.style.setProperty("--beam", pitch / dpr + "px");
-  screen.style.setProperty("--triad", 3 / dpr + "px");
   screen.style.setProperty("--tube-texture", 'url("' + beamTexture(pitch) + '")');
 }
 
