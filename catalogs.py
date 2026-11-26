@@ -37,6 +37,30 @@ def wikidata(selector):
     return rows
 
 
+YEAR_SLACK = 3
+
+
+def nearest(candidates, year):
+    """The one (year, item) candidate for a title whose year is nearest `year`, at most YEAR_SLACK away, or None.
+    A distributor often lists its own release year, a year or more after the premiere that IMDb, Wikidata and
+    Letterboxd record (NEON's Hell of a Summer: 2025 against 2023), so an exact year cannot be required.
+    Two candidates equally near (a remake, a namesake) match neither."""
+    try:
+        year = int(year)
+    except (TypeError, ValueError):
+        return None
+    by_gap = {}
+    for candidate_year, item in candidates:
+        try:
+            gap = abs(int(str(candidate_year)[:4]) - year)
+        except ValueError:
+            continue
+        if gap <= YEAR_SLACK:
+            by_gap.setdefault(gap, []).append(item)
+    closest = by_gap.get(min(by_gap)) if by_gap else []
+    return closest[0] if len(closest) == 1 else None
+
+
 def criterion():
     return wikidata("?film wdt:P9584 ?criterion")
 
@@ -103,12 +127,11 @@ def enrich(key, rows, previous):
     by_title = {}
     for row in candidates:
         if row.get("imdb"):
-            group = by_title.setdefault((row["title"].casefold(), str(row["year"])), {})
-            group[row["imdb"]] = row
+            by_title.setdefault(row["title"].casefold(), {})[row["imdb"]] = row
     for row in rows:
-        group = by_title.get((row["title"].casefold(), str(row["year"])), {})
-        if len(group) == 1:
-            match = next(iter(group.values()))
+        group = by_title.get(row["title"].casefold(), {})
+        match = nearest([(c["year"], c) for c in group.values()], row["year"])
+        if match:
             row.update(imdb=match["imdb"], certification=row.get("certification") or match.get("certification"))
 
 

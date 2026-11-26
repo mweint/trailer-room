@@ -21,7 +21,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlsplit
 from urllib.request import Request, urlopen
 import webbrowser
-from catalogs import CatalogStore, SOURCES
+from catalogs import CatalogStore, SOURCES, nearest
 from plex import PlexError, PlexSource
 from trailer_selection import rank_trailers
 
@@ -180,9 +180,9 @@ def find_imdb(row):
     if IMDB.fullmatch(row.get("imdb") or ""):
         return row["imdb"]
     catalog = read_public(CINEMETA + "/catalog/movie/top/search=" + quote(row["title"], safe="") + ".json")
-    matches = [m for m in catalog.get("metas", []) if normal(m["name"]) == normal(row["title"])
-               and str(m.get("releaseInfo", ""))[:4] == str(row.get("year"))]
-    return matches[0]["id"] if len(matches) == 1 and IMDB.fullmatch(matches[0]["id"]) else ""
+    match = nearest([(m.get("releaseInfo", ""), m) for m in catalog.get("metas", [])
+                     if normal(m["name"]) == normal(row["title"])], row.get("year"))
+    return match["id"] if match and IMDB.fullmatch(match["id"]) else ""
 
 
 def add_video(videos, provider, value):

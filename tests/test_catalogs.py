@@ -9,6 +9,23 @@ from unittest.mock import patch
 import catalogs
 
 
+class NearestYearTests(unittest.TestCase):
+    def test_exact_year_wins_then_nearest_within_slack(self):
+        self.assertEqual(catalogs.nearest([("2023", "premiere")], "2025"), "premiere")
+        self.assertEqual(catalogs.nearest([("1977", "old"), ("2018", "remake")], "2018"), "remake")
+        self.assertEqual(catalogs.nearest([("2018-10-26", "dated")], 2019), "dated")
+        self.assertIsNone(catalogs.nearest([("1977", "old")], "2018"))
+        self.assertIsNone(catalogs.nearest([("2016", "a"), ("2020", "b")], "2018"))
+        self.assertIsNone(catalogs.nearest([("2023", "a")], ""))
+
+    def test_distributor_release_year_still_finds_the_film(self):
+        rows = [{"title": "Hell of a Summer", "year": "2025"}]
+        known = [{"title": "Hell of a Summer", "year": "2023", "imdb": "tt21267296"}]
+        with patch("catalogs.wikidata", return_value=[]):
+            catalogs.enrich("neon", rows, known)
+        self.assertEqual(rows[0]["imdb"], "tt21267296")
+
+
 class RefreshTests(unittest.TestCase):
     def test_single_refresh_stale_failure_restart_and_recovery(self):
         entered, release = Event(), Event()
