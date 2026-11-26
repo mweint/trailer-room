@@ -118,7 +118,7 @@ initShortcuts({
   clickNext: transport.clickNext
 });
 
-const plexSetup = plexPreferences(syncCollections, programming.redrawSources);
+const plexSetup = plexPreferences(syncCollections, programming.redrawPlex);
 programming.initProgramming(screen.setNotice, plexSetup);
 initFilters(screen.setNotice);
 onSync({

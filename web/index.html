@@ -135,10 +135,12 @@
     <p id="programmingEmpty" class="collapse programming-empty" hidden>No films match. <button id="clearFilters" class="button button--inline" type="button">Clear filters</button></p>
     <section class="programming-group" aria-labelledby="sourcesLabel">
       <h3 class="programming-label" id="sourcesLabel">Sources</h3>
-      <div id="sources" class="source-list collapse"></div>
-      <section class="plex-settings" aria-label="Plex library">
-        <p id="plexMessage" class="collapse plex-message" role="status"></p>
-      </section>
+      <div id="sources" class="source-list"></div>
+    </section>
+    <section class="programming-group" aria-labelledby="plexLabel">
+      <div class="programming-header"><h3 class="programming-label" id="plexLabel">Plex</h3><div id="plexActions" class="button-group"></div></div>
+      <div id="plexRows" class="collapse"></div>
+      <p id="plexMessage" class="collapse plex-message" role="status"></p>
     </section>
     <section class="programming-group" aria-labelledby="decadeLabel">
       <h3 class="programming-label" id="decadeLabel">Decade</h3>
@@ -154,7 +156,7 @@
       <div class="rating-filter">
         <label for="maxRating">Up to U.S. rating</label>
         <select id="maxRating" class="select"><option value="">Any rating</option></select>
-        <label class="unrated-option">Include unrated films<input type="checkbox" id="includeUnrated"><span class="switch" aria-hidden="true"></span></label>
+        <label class="switch-row"><span class="switch-row-label">Include unrated films</span><input type="checkbox" id="includeUnrated"><span class="switch" aria-hidden="true"></span></label>
       </div>
     </section>
     <section class="programming-group">

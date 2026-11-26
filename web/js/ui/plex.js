@@ -1,6 +1,6 @@
-// Plex: the logic behind the Plex group in Programming, which programming.js draws. Sign-in hand-off, the
-// connecting browser's library edit without sign-in, choosing a server and libraries, saving and removing.
-// While editing, the Plex group itself becomes the editor: a switch per library, Cancel and Save in its heading.
+// Plex: the logic behind the Plex section of Programming, which programming.js draws. Connecting signs in with
+// Plex, then imports every film library on the chosen server (asking which server only when there are several);
+// each library is then switched on or off where it is listed. Removing disconnects the server.
 import {$, resize} from "../dom.js";
 import {plexCall as call} from "../api.js";
 
@@ -8,16 +8,13 @@ const flowKey = "trailer-room.plex-setup";
 const removalKey = "trailer-room.plex-remove";
 const PROGRESS_DELAY = 400;
 
-const marked = (entries, connected) =>
-  entries.map(item => ({id: item.id, name: item.name, on: connected.includes("plex-" + item.id)}));
-
-// sync(force) reloads the collections after the libraries change. redraw(opening) redraws the Plex group,
+// sync(force) reloads the collections after the libraries change. redraw(opening) redraws the Plex section,
 // animating its height when opening is given.
 export function plexPreferences(sync, redraw) {
   const message = $("plexMessage");
   let state = null;
   let flow = null;
-  let edit = null;
+  let servers = null;
   let busy = false;
   let pending;
 
@@ -46,26 +43,15 @@ export function plexPreferences(sync, redraw) {
     state = source;
   }
 
-  // The edit in progress: {servers (signed in) or null, server, serverName, libraries: [{id, name, on}]}, or null.
-  function editing() {
-    return edit;
+  // After sign-in, the servers to choose from when the account has several; otherwise null.
+  function choosing() {
+    return servers;
   }
 
-  function startEditing(next) {
-    const opening = !edit;
-    edit = next;
-    redraw(opening ? true : undefined);
-  }
-
-  function stopEditing() {
-    if (!edit) {
-      return;
-    }
-    edit = null;
+  function finish() {
+    servers = null;
     flow = null;
     sessionStorage.removeItem(flowKey);
-    say("");
-    redraw(false);
   }
 
   async function signIn(removeConnection = "") {
@@ -89,75 +75,21 @@ export function plexPreferences(sync, redraw) {
     }
   }
 
-  // Change: the browser that connected Plex edits the connected server's libraries straight away;
-  // anywhere else, or with nothing connected, signs in first.
-  async function change() {
-    if (busy) {
-      return;
-    }
-    if (!state) {
-      return signIn();
-    }
-    working("Finding libraries…");
-    try {
-      const result = await call("manage");
-      if (result.signInRequired) {
-        return signIn();
-      }
-      say("");
-      startEditing({servers: null, server: null, serverName: result.server,
-        libraries: marked(result.libraries, state.libraries)});
-    } catch (error) {
-      say(error.message);
-    }
-  }
-
+  // Imports every film library on the server.
   async function chooseServer(id) {
-    const server = edit.servers.find(item => item.id === id);
-    startEditing({...edit, server: id, serverName: server?.name || "", libraries: []});
-    if (!server) {
-      return;
-    }
-    working("Finding libraries…");
-    try {
-      const result = await call("libraries", {flow, server: id});
-      if (edit?.server !== id) {
-        return;
-      }
-      const same = state && server.name === state.server;
-      say(result.libraries.length ? "" : "This server has no accessible film libraries.");
-      startEditing({...edit, libraries: marked(result.libraries, same ? state.libraries : [])});
-    } catch (error) {
-      say(error.message);
-    }
-  }
-
-  function toggle(id, on) {
-    const library = edit?.libraries.find(item => item.id === id);
-    if (library) {
-      library.on = on;
-    }
-  }
-
-  async function save() {
-    const library = edit?.libraries.filter(item => item.on).map(item => item.id).join(",");
-    if (busy || !library) {
+    if (busy || !id) {
       return;
     }
     busy = true;
     working("Importing films…");
     try {
-      const result = await call("connect", flow ? {flow, server: edit.server, library} : {library});
-      if (result.signInRequired) {
-        busy = false;
-        return await signIn();
-      }
-      edit = null;
-      flow = null;
-      sessionStorage.removeItem(flowKey);
+      await call("libraries", {flow, server: id});
+      await call("connect", {flow, server: id});
+      const wasChoosing = !!servers;
+      finish();
       say("");
       await sync(true);
-      redraw(false);
+      redraw(wasChoosing ? false : undefined);
     } catch (error) {
       say(error.message);
     } finally {
@@ -165,15 +97,15 @@ export function plexPreferences(sync, redraw) {
     }
   }
 
-  async function removed() {
-    sessionStorage.removeItem(flowKey);
-    edit = null;
-    flow = null;
-    say("");
-    await sync(true);
+  function cancel() {
+    if (servers) {
+      finish();
+      say("");
+      redraw(false);
+    }
   }
 
-  // Back from Plex sign-in: finish a removal that needed it, or start choosing a server and libraries.
+  // Back from Plex sign-in: finish a removal that needed it, or connect a server.
   async function resume() {
     try {
       flow = sessionStorage.getItem(flowKey);
@@ -185,7 +117,9 @@ export function plexPreferences(sync, redraw) {
         sessionStorage.removeItem(removalKey);
         working("Removing Plex…");
         await call("disconnect", {flow, connection});
-        await removed();
+        finish();
+        say("");
+        await sync(true);
         return;
       }
       working("Finding your servers…");
@@ -195,10 +129,11 @@ export function plexPreferences(sync, redraw) {
         return;
       }
       say("");
-      startEditing({servers: result.servers, server: null, serverName: "", libraries: []});
-      // With a single server there is nothing to choose: take it and list its libraries.
       if (result.servers.length === 1) {
         await chooseServer(result.servers[0].id);
+      } else {
+        servers = result.servers;
+        redraw(true);
       }
     } catch (error) {
       say(error.message);
@@ -213,12 +148,13 @@ export function plexPreferences(sync, redraw) {
     busy = true;
     working("Removing Plex…");
     try {
-      const result = await call("disconnect", {connection, ...(flow ? {flow} : {})});
+      const result = await call("disconnect", {connection});
       if (result.signInRequired) {
         busy = false;
         return await signIn(connection);
       }
-      await removed();
+      say("");
+      await sync(true);
     } catch (error) {
       say(error.message);
     } finally {
@@ -226,6 +162,5 @@ export function plexPreferences(sync, redraw) {
     }
   }
 
-  return {status, resume, editing, change, cancel: stopEditing, chooseServer, toggle, save,
-    otherServer: () => signIn(), remove};
+  return {status, resume, choosing, connect: () => signIn(), chooseServer, cancel, remove};
 }

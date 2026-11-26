@@ -59,6 +59,7 @@
   --control-text: var(--text-ui);
   --control-text-sm: var(--text-meta);
   --control-touch: 2.75rem;
+  --row: 2.5rem;
   --icon: 18px;
   --icon-sm: 16px;
 
