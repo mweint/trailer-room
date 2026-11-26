@@ -103,11 +103,12 @@
 
 /* The Plex group's heading: which server, with its actions as links. Its libraries follow as source rows. */
 .plex-heading {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--source-logo-column) minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
   margin-top: var(--space-3);
-  min-height: var(--control);
+  min-height: var(--source-row-height);
   color: var(--color-text-muted);
   font-size: var(--text-meta);
 }
@@ -122,8 +123,9 @@
   font-size: var(--text-ui);
 }
 
+/* Part of the Plex group, so its label lines up with the library names, not the logos. */
 .plex-other {
-  justify-self: start;
+  margin-inline-start: calc(var(--source-logo-column) + var(--space-3) - var(--button-inset));
 }
 
 .plex-heading-name {

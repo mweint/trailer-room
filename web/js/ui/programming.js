@@ -49,15 +49,21 @@ function sourceRow(key, {name, logo: file}, focused) {
     setSourceEnabled(key, input.checked);
     changed();
   };
-  const logo = el("img", "source-logo " + (isPlex(key) ? "plex" : key));
-  logo.alt = "";
-  logo.src = "/logos/" + file;
-  label.append(logo, text, input, el("span", "switch"));
+  label.append(isPlex(key) ? el("span") : logo(key, file), text, input, el("span", "switch"));
   if (focused === key) {
     queueMicrotask(() => input.focus({preventScroll: true}));
   }
   const state = statusOf(key);
   return state?.error ? [label, failureNote(key, state)] : [label];
+}
+
+// A source's logo. Plex shows its logo once, on its group's heading; its library rows leave the column empty
+// so their names still line up with the other sources.
+function logo(key, file) {
+  const image = el("img", "source-logo " + key);
+  image.alt = "";
+  image.src = "/logos/" + file;
+  return image;
 }
 
 function link(text, action) {
@@ -67,11 +73,15 @@ function link(text, action) {
   return button;
 }
 
-function plexHeading(name, ...actions) {
+// The Plex group's heading sits in the source grid: the Plex logo in the logo column, the server's name, then
+// the group's actions.
+function plexHeading(server, ...actions) {
   const heading = el("div", "plex-heading");
   const group = el("div", "button-group");
+  const mark = logo("plex", "plex.svg");
+  mark.alt = "Plex";
   group.append(...actions);
-  heading.append(el("span", "plex-heading-name", name), group);
+  heading.append(mark, el("span", "plex-heading-name", server), group);
   return heading;
 }
 
@@ -82,7 +92,7 @@ function plexEditor(edit) {
   save.className = "button button--primary";
   const anyOn = () => edit.libraries.some(item => item.on);
   save.disabled = !anyOn();
-  const rows = [plexHeading("Plex" + (edit.serverName ? " · " + edit.serverName : ""),
+  const rows = [plexHeading(edit.serverName,
     link("Cancel", () => plexActions.cancel()), save)];
   if (edit.servers?.length > 1) {
     const field = el("label", "plex-server");
@@ -102,10 +112,7 @@ function plexEditor(edit) {
       plexActions.toggle(library.id, input.checked);
       save.disabled = !anyOn();
     };
-    const logo = el("img", "source-logo plex");
-    logo.alt = "";
-    logo.src = "/logos/plex.svg";
-    label.append(logo, el("span", "source-name", library.name), input, el("span", "switch"));
+    label.append(el("span"), el("span", "source-name", library.name), input, el("span", "switch"));
     rows.push(label);
   }
   if (!edit.servers) {
@@ -130,7 +137,7 @@ function renderSources() {
   if (edit) {
     rows.push(...plexEditor(edit));
   } else if (plex) {
-    rows.push(plexHeading("Plex · " + plex.server,
+    rows.push(plexHeading(plex.server,
       link("Change", () => plexActions.change()), link("Remove", () => plexActions.remove())));
     for (const key of plex.libraries) {
       if (SOURCES[key]) {
