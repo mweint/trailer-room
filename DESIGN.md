@@ -113,6 +113,7 @@ Primitives (`web/css/components/`), reused everywhere:
 | Button | `.button` | `--icon` (every icon-only button on the page, always round); `--primary` (the one action that completes a form, Save: filled in the bright text colour, like a selected chip); `--text` (an action that stands on its own: Change, Remove, Restore, More, Cancel: no underline, dimmer text that brightens, with the hover fill); `--inline` (an action inside a sentence: Retry, Clear filters: underlined, no box); `--on-video` (on the picture: no fill and no shape, dimmed at rest and bright on hover, as in YouTube's player; a pressed tool keeps its bar underneath); `--flush` (aligned to the column; padding set by `--button-inset`). Underlines mean a link in a sentence and nothing else. |
 | Switch | `.switch` | — |
 | Range | `.range` | timeline, volume |
+| Button group | `.button-group` | Buttons side by side (Cancel and Save, Change and Remove) are always `--space-2` apart, the usual spacing between adjacent buttons. The dock is exempt: buttons on the picture have no shape to space. |
 | Select | `.select` | Native select with control text (`--text-ui`) and its arrow replaced by a chevron, inset from the right edge by the same `--space-3` as the text from the left. Features may size it (width) but never restyle it. |
 | Menu | `.menu` | film options. The compact view-tools popover is part of the dock, because the same buttons sit inline at every other width. |
 | Panel heading | `.panel-heading` | — |

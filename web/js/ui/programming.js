@@ -69,7 +69,9 @@ function link(text, action) {
 
 function plexHeading(name, ...actions) {
   const heading = el("div", "plex-heading");
-  heading.append(el("span", "plex-heading-name", name), ...actions);
+  const group = el("div", "button-group");
+  group.append(...actions);
+  heading.append(el("span", "plex-heading-name", name), group);
   return heading;
 }
 
