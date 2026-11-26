@@ -149,8 +149,15 @@
   letter-spacing: .02em;
 }
 
+/* Theater mode exists only beside a sidebar (layout.css). */
 .theater:is(:fullscreen, [data-expanded]) .theater-toggle {
   display: none;
+}
+
+@media (max-width: 54rem) {
+  .theater-toggle {
+    display: none;
+  }
 }
 
 @media (pointer: coarse) {

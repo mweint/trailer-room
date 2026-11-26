@@ -102,7 +102,7 @@ Every piece of text has one role, and each role has one size, weight and colour.
 - **Status lines show work in progress and errors only.** A finished action (a library connected or removed) is shown by the change itself, so its message clears instead of staying behind.
 - **Every clickable thing sets its own cursor.** A row that is a label is the label itself, so the whole row, switch included, shows one pointer; nothing inherits a cursor from a non-clickable parent.
 - One file per component or feature. A feature file may hold several closely tied roots (`screen.css`: `.display`, `.screen`, `.start`; `dock.css`: `.dock`, `.transport`, `.view-tools`, `.wake-surface`). Formatted one declaration per line.
-- `base.css` holds the reset, element defaults, `.icon` and `.sr-only`. `layout.css` holds the page grid (`.page`, `.theater`, `.sidebar`), theater mode and the page breakpoints.
+- `base.css` holds the reset, element defaults, `.icon` and `.sr-only`. `layout.css` holds the page grid (`.page`, `.theater`, `.sidebar`), theater mode and the page breakpoints. Theater mode gives the player the sidebar's width, so it exists only while the sidebar sits beside the player (wider than 54rem), as on YouTube: narrower, its button is hidden and the T key does nothing.
 - Breakpoints: page at `54rem` and `36rem`; player at container width `30rem`; touch via `(pointer: coarse)`. Motion respects `prefers-reduced-motion`.
 
 ## Components

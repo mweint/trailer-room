@@ -6,9 +6,7 @@ body {
 }
 
 .mast,
-.page,
-[data-theater] .sidebar,
-[data-theater] .theater:not(:fullscreen, [data-expanded]) > :is(.film-info, .status) {
+.page {
   width: min(calc(100% - 2 * var(--gutter)), var(--page-max));
   margin-inline: auto;
 }
@@ -36,14 +34,25 @@ body {
   font-size: var(--text-ui);
 }
 
-.page[data-theater] {
-  width: 100%;
-  grid-template-columns: minmax(0, 1fr);
-}
+/* Theater mode gives the player the sidebar's width, so it exists only while the sidebar sits beside the player
+   (as on YouTube, whose theater mode is part of the layout with a sidebar). Narrower, the setting is kept but
+   has nothing to change. */
+@media (width > 54rem) {
+  [data-theater] .sidebar,
+  [data-theater] .theater:not(:fullscreen, [data-expanded]) > :is(.film-info, .status) {
+    width: min(calc(100% - 2 * var(--gutter)), var(--page-max));
+    margin-inline: auto;
+  }
 
-[data-theater] .sidebar {
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-4);
+  .page[data-theater] {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  [data-theater] .sidebar {
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-4);
+  }
 }
 
 .theater:is(:fullscreen, [data-expanded]) {

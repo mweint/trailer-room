@@ -21,11 +21,14 @@
   background: var(--video-black);
 }
 
-[data-theater] .display {
-  --display-min-height: 12rem;
-  --display-page-chrome: 7rem;
-  max-height: max(var(--display-min-height), calc(100svh - var(--display-page-chrome)));
-  border-radius: 0;
+/* Theater mode, only beside a sidebar (layout.css). */
+@media (width > 54rem) {
+  [data-theater] .display {
+    --display-min-height: 12rem;
+    --display-page-chrome: 7rem;
+    max-height: max(var(--display-min-height), calc(100svh - var(--display-page-chrome)));
+    border-radius: 0;
+  }
 }
 
 .theater:is(:fullscreen, [data-expanded]) .display {

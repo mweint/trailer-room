@@ -4,6 +4,8 @@ import {pref, setPref, savePrefs} from "../prefs.js";
 
 const layout = $("theater").closest("main");
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+// Theater mode exists only while the sidebar sits beside the player (layout.css).
+const sideBySide = matchMedia("(width > 54rem)");
 let sizeMotion;
 let sidebarMotion;
 let showControls = () => {};
@@ -27,7 +29,7 @@ function reflectTheaterMode() {
 }
 
 export function toggleTheaterMode() {
-  if (document.fullscreenElement || isExpanded()) {
+  if (document.fullscreenElement || isExpanded() || !sideBySide.matches) {
     return;
   }
   const stage = $("stage");
