@@ -131,7 +131,7 @@ Features (`web/css/features/` and `web/js/ui/`). Each has a CSS file; the module
 | --- | --- | --- | --- |
 | Masthead | `.mast` | `preferences.js` (button only) | Wordmark, Programming button |
 | Screen | `.screen` | `screen.js` | Artwork, embed, cover, play pill |
-| CRT | `.screen[data-crt]` | `crt.js` | Raster (scanlines and aperture grille, blended over the picture) and one optics filter (convergence toward the corners, bloom, halation). The optics are Chromium only (they filter the backdrop; filtering the video itself turns it black in Firefox). |
+| CRT | `.screen[data-crt]` | `crt.js` | A raster blended over the picture: scanlines and aperture grille, a vignette and the rounded glass edge. It looks the same in every browser: effects that need the picture's pixels (bloom, convergence) are left out, because a YouTube or Vimeo frame cannot be read or filtered alike everywhere. |
 | Dock | `.dock` | `dock.js`, `transport.js` | Auto-hide and view tools; title, timeline, transport buttons, volume |
 | Film info | `.film-info` | `film-info.js` | Title, credit, facts, description (three lines, More), film options menu |
 | Queue | `.queue` | `queue.js` | Up-next list, poster loading as rows scroll into view, list height |

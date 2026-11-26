@@ -1,4 +1,4 @@
-/* CRT: raster, bloom and convergence layers, shown while .screen has data-crt. Values here are optical constants, not tokens. */
+/* CRT: the raster layer (scanlines, aperture grille, vignette, glass edge), shown while .screen has data-crt. Values here are optical constants, not tokens. */
 .raster,
 .raster svg {
   position: absolute;
@@ -13,11 +13,6 @@
   pointer-events: none;
 }
 
-.tube-optics {
-  display: none;
-  pointer-events: none;
-}
-
 [data-crt] :is(.screen-art, .screen-embed) {
   /* Leave opaque backing under the antialiased outer edge of the glass. */
   inset: 2px;
@@ -25,18 +20,6 @@
   height: auto;
   overflow: hidden;
   border-radius: 6px;
-}
-
-/* The tube optics (convergence, bloom, halation: #crt-optics in index.html), in one pass over the composed picture
-   behind this layer. Chromium only: Firefox and Safari do not apply SVG filters to a backdrop. Filtering the
-   picture itself instead is no way round it: the playing video then goes black in Firefox and can drop frames in
-   Chromium. Other browsers show the raster alone. */
-[data-crt] .tube-optics {
-  display: block;
-  position: absolute;
-  inset: 2px;
-  border-radius: 6px;
-  backdrop-filter: url(#crt-optics);
 }
 
 [data-crt] .raster {
