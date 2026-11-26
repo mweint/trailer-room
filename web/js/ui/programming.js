@@ -154,7 +154,7 @@ function changed() {
 function summary() {
   const on = Object.entries(SOURCES).filter(([key]) => sourceEnabled(key));
   const sources = on.length === Object.keys(SOURCES).length ? "All sources" :
-    on.length ? on.map(([, s]) => s.short || s.name).join(", ") : "No sources";
+    on.length ? [...new Set(on.map(([, s]) => s.short || s.name))].join(", ") : "No sources";
   return [
     sources,
     pref("decades").slice().sort().map(d => d + "s").join(", "),
