@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 from threading import Lock, Thread
 import time
+import unicodedata
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -40,15 +41,15 @@ def wikidata(selector):
 YEAR_SLACK = 3
 
 
-def nearest(candidates, year):
-    """The one (year, item) candidate for a title whose year is nearest `year`, at most YEAR_SLACK away, or None.
-    A distributor often lists its own release year, a year or more after the premiere that IMDb, Wikidata and
-    Letterboxd record (NEON's Hell of a Summer: 2025 against 2023), so an exact year cannot be required.
-    Two candidates equally near (a remake, a namesake) match neither."""
+def closest(candidates, year):
+    """The (year, item) candidates whose year is nearest `year`, at most YEAR_SLACK away: one, several equally near
+    (a remake, a namesake), or none. A distributor often lists its own release year, a year or more after the
+    premiere that IMDb, Wikidata and Letterboxd record (NEON's Hell of a Summer: 2025 against 2023), so an exact
+    year cannot be required."""
     try:
         year = int(year)
     except (TypeError, ValueError):
-        return None
+        return []
     by_gap = {}
     for candidate_year, item in candidates:
         try:
@@ -57,8 +58,57 @@ def nearest(candidates, year):
             continue
         if gap <= YEAR_SLACK:
             by_gap.setdefault(gap, []).append(item)
-    closest = by_gap.get(min(by_gap)) if by_gap else []
-    return closest[0] if len(closest) == 1 else None
+    return by_gap[min(by_gap)] if by_gap else []
+
+
+def nearest(candidates, year):
+    """The one candidate nearest in year (see closest), or None when there is none or several."""
+    found = closest(candidates, year)
+    return found[0] if len(found) == 1 else None
+
+
+def words(text):
+    """A title or name as words, ignoring case, accents and punctuation."""
+    folded = unicodedata.normalize("NFKD", str(text or "").casefold())
+    return "".join(c if c.isalnum() else " " for c in folded if not unicodedata.combining(c)).split()
+
+
+def normal(text):
+    return "".join(words(text))
+
+
+def same_film(row, candidates, directors_of=None):
+    """The one candidate that is the film `row` names, or None. candidates: (title, year, item) tuples.
+    A distributor names a film the way its shop sells it, with an edition ("Possessor Uncut", "Infinity Pool:
+    Uncut") and its own release year, so a title cannot be required to match exactly. The first rule that finds
+    one wins:
+    - the same title (ignoring case, accents and punctuation), at the nearest year; when several films share
+      that title and year (two 2020 films called Notturno), the one with a director in common;
+    - a title that begins the other, in whole words, when they share a director: the director is what keeps a
+      different film that merely opens with the same words from being taken.
+    directors_of(item) gives a candidate's directors; it is asked only when the title alone cannot decide."""
+    title = words(row["title"])
+    directed = {normal(name) for name in row.get("directors") or []} - {""}
+
+    def by_director(items):
+        if not directed or not directors_of:
+            return []
+        return [item for item in items if directed & {normal(name) for name in directors_of(item) or []}]
+
+    same = closest([(year, item) for name, year, item in candidates if words(name) == title], row.get("year"))
+    if len(same) == 1:
+        return same[0]
+    if same:
+        shared = by_director(same)
+        return shared[0] if len(shared) == 1 else None
+
+    def begins(other):
+        shorter, longer = sorted((title, other), key=len)
+        return 0 < len(shorter) < len(longer) and longer[:len(shorter)] == shorter
+
+    extended = closest([(year, item) for name, year, item in candidates if begins(words(name))], row.get("year"))
+    shared = by_director(extended[:1] if len(extended) == 1 else [])
+    return shared[0] if shared else None
 
 
 def criterion():
@@ -74,6 +124,7 @@ def a24():
         for film in data["results"]:
             if film.get("title_type") == "film":
                 rows.append({"title": film["display_name"], "year": film.get("year"), "slug": film["slug"],
+                             "directors": [d for d in film.get("directors") or [] if isinstance(d, str)],
                              "poster": (film.get("static_art") or {}).get("src")})
         if not data.get("next"):
             return rows
@@ -89,9 +140,12 @@ def janus():
         title = re.search(r'<h4 class="title">\s*<a[^>]*>(.*?)</a>', card, re.S)
         year = re.search(r'<div class="year [^"]*">\s*(\d{4})', card)
         image = re.search(r'data-layzr="(https://[^"]+)"', card)
+        director = re.search(r'<div class="director[^"]*">(.*?)</div>', card, re.S)
         if title and year:
             rows.append({"title": html.unescape(re.sub("<[^>]+>", "", title[1])).strip(),
-                         "year": year[1], "poster": html.unescape(image[1]) if image else None})
+                         "year": year[1], "poster": html.unescape(image[1]) if image else None,
+                         "directors": [html.unescape(name).strip() for name in
+                                       re.findall(r"<a[^>]*>(.*?)</a>", director[1], re.S)] if director else []})
     return rows
 
 
@@ -105,12 +159,16 @@ def neon():
         data = packet[1]
         films = json.JSONDecoder().raw_decode(data, data.index(marker) + len('"films":'))[0]
         return [{"title": f["title"], "year": f.get("year"), "certification": f.get("rating"),
+                 "directors": [d["name"] for d in f.get("directedBy") or [] if d.get("name")],
                  "poster": (f.get("featuredImage") or {}).get("small")}
                 for f in films if not f.get("isBundle") and (f.get("directedBy") or f.get("productType") == "Film & Television")]
     raise ValueError("NEON film feed missing")
 
 
 SOURCES = {"criterion": criterion, "a24": a24, "janus": janus, "neon": neon}
+# Raised when the fields read from the feeds change; a saved list in an older format is fetched again (and served
+# meanwhile) instead of waiting out the refresh interval. 2: directors.
+FORMAT = 2
 MINIMUM = {"criterion": 500, "a24": 80, "janus": 500, "neon": 60}
 COMPANY = {"a24": "Q16248298", "janus": "Q6155948", "neon": "Q30603559"}
 
@@ -124,13 +182,14 @@ def enrich(key, rows, previous):
         candidates += wikidata(f"?film (wdt:P750|wdt:P272) wd:{COMPANY[key]}")
     except (OSError, ValueError, KeyError) as exc:
         logging.warning("%s optional Wikidata metadata unavailable: %s", key, exc)
+    by_imdb = {row["imdb"]: row for row in candidates if row.get("imdb")}
     by_title = {}
-    for row in candidates:
-        if row.get("imdb"):
-            by_title.setdefault(row["title"].casefold(), {})[row["imdb"]] = row
+    for row in by_imdb.values():
+        by_title.setdefault(normal(row["title"]), []).append((row["title"], row["year"], row))
     for row in rows:
-        group = by_title.get(row["title"].casefold(), {})
-        match = nearest([(c["year"], c) for c in group.values()], row["year"])
+        # Wikidata gives no directors here, so only the same title matches; server.find_imdb also tries the
+        # edition rule when a trailer is looked up.
+        match = same_film(row, by_title.get(normal(row["title"]), []))
         if match:
             row.update(imdb=match["imdb"], certification=row.get("certification") or match.get("certification"))
 
@@ -142,6 +201,7 @@ class CatalogStore:
         self.lock = Lock()
         self.running = set()
         self.states = {}
+        self.formats = {}
         self.rows = {}
         self.interval = 86400 * max(1, int(os.getenv("CATALOG_REFRESH_DAYS") or "30"))
         for key in SOURCES:
@@ -149,9 +209,11 @@ class CatalogStore:
                 data = json.loads(self.path(key).read_text("utf-8"))
                 rows = [register(row) for row in data["rows"]]
                 self.states[key] = {field: data[field] for field in ("updated", "attempted", "error")}
+                self.formats[key] = data.get("format")
             except (OSError, ValueError, KeyError, TypeError):
                 rows = []
                 self.states[key] = {"updated": 0, "attempted": 0, "error": ""}
+                self.formats[key] = None
             self.rows[key] = rows
 
     def path(self, key):
@@ -165,8 +227,8 @@ class CatalogStore:
         with self.lock:
             state = self.states[key]
             now = time.time()
-            if key in self.running or (not manual and
-                (now - state["updated"] < self.interval or now - state["attempted"] < 3600)):
+            current = self.formats[key] == FORMAT and now - state["updated"] < self.interval
+            if key in self.running or (not manual and (current or now - state["attempted"] < 3600)):
                 return
             self.running.add(key)
             Thread(target=self.update, args=(key,), daemon=True).start()
@@ -197,11 +259,14 @@ class CatalogStore:
             self.directory.mkdir(parents=True, exist_ok=True)
             path = self.path(key)
             temp = path.with_suffix(".tmp")
-            temp.write_text(json.dumps({**state, "rows": raw}, ensure_ascii=False), encoding="utf-8")
+            # A failed fetch keeps the old rows, and with them their format.
+            written = FORMAT if not state["error"] else self.formats[key]
+            temp.write_text(json.dumps({**state, "format": written, "rows": raw}, ensure_ascii=False), encoding="utf-8")
             temp.replace(path)
             with self.lock:
                 if not state["error"]:
                     self.rows[key] = [self.register(row) for row in raw]
+                self.formats[key] = written
                 self.states[key] = state
         except OSError as exc:
             logging.warning("%s cache write failed: %s", key, exc)

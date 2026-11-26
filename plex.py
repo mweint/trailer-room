@@ -91,7 +91,8 @@ def film_rows(server, key, library):
             if rating in ("NR", "UR", "NOT RATED", "UNRATED"):
                 rating = "Unrated"
             row = {"title": film["title"], "year": film.get("year"), "tmdb": ids.get("tmdb"),
-                   "imdb": imdb if re.fullmatch(r"tt\d{7,10}", imdb) else None, "certification": rating}
+                   "imdb": imdb if re.fullmatch(r"tt\d{7,10}", imdb) else None, "certification": rating,
+                   "directors": [d["tag"] for d in film.get("Director", []) if d.get("tag")]}
             rows[row["imdb"] or (row["title"], row["year"])] = row
         offset += count
         if "totalSize" in page:

@@ -16,12 +16,11 @@ from pathlib import Path
 import re
 from threading import Lock, Thread
 import time
-import unicodedata
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlsplit
 from urllib.request import Request, urlopen
 import webbrowser
-from catalogs import CatalogStore, SOURCES, nearest
+from catalogs import CatalogStore, SOURCES, normal, same_film
 from plex import PlexError, PlexSource
 from trailer_selection import rank_trailers
 
@@ -35,9 +34,6 @@ YOUTUBE = re.compile(r"[A-Za-z0-9_-]{11}\Z")
 IMDB = re.compile(r"tt\d{7,10}\Z")
 movies = {}
 
-
-def normal(title):
-    return "".join(c for c in unicodedata.normalize("NFKD", title.casefold()) if c.isalnum())
 
 
 def register(row):
@@ -180,9 +176,11 @@ def find_imdb(row):
     if IMDB.fullmatch(row.get("imdb") or ""):
         return row["imdb"]
     catalog = read_public(CINEMETA + "/catalog/movie/top/search=" + quote(row["title"], safe="") + ".json")
-    match = nearest([(m.get("releaseInfo", ""), m) for m in catalog.get("metas", [])
-                     if normal(m["name"]) == normal(row["title"])], row.get("year"))
-    return match["id"] if match and IMDB.fullmatch(match["id"]) else ""
+    metas = [m for m in catalog.get("metas", []) if m.get("name") and IMDB.fullmatch(m.get("id", ""))]
+    # Search results carry no directors; the film's own record does, fetched only when the edition rule needs it.
+    directors = lambda m: (read_public(CINEMETA + "/meta/movie/" + m["id"] + ".json").get("meta") or {}).get("director")
+    match = same_film(row, [(m["name"], m.get("releaseInfo", ""), m) for m in metas], directors)
+    return match["id"] if match else ""
 
 
 def add_video(videos, provider, value):

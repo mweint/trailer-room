@@ -26,6 +26,37 @@ class NearestYearTests(unittest.TestCase):
         self.assertEqual(rows[0]["imdb"], "tt21267296")
 
 
+class SameFilmTests(unittest.TestCase):
+    def test_edition_in_the_title_matches_only_with_a_shared_director(self):
+        row = {"title": "Possessor Uncut", "year": "2020", "directors": ["Brandon Cronenberg"]}
+        film = ("Possessor", "2020", "tt5918982")
+        asked = []
+        directors = lambda item: asked.append(item) or ["Brandon Cronenberg"]
+        self.assertEqual(catalogs.same_film(row, [film, ("The Possessors", "1958", "x")], directors), "tt5918982")
+        self.assertEqual(asked, ["tt5918982"])
+        self.assertIsNone(catalogs.same_film(row, [film], lambda item: ["Someone Else"]))
+        self.assertIsNone(catalogs.same_film(dict(row, directors=[]), [film], directors))
+        self.assertIsNone(catalogs.same_film(row, [film]))
+        colon = {"title": "Infinity Pool: Uncut", "year": "2023", "directors": ["Brandon Cronenberg"]}
+        self.assertEqual(catalogs.same_film(colon, [("Infinity Pool", "2023", "pool")], directors), "pool")
+
+    def test_same_title_needs_no_director_and_wins(self):
+        row = {"title": "Amélie", "year": "2001", "directors": ["Jean-Pierre Jeunet"]}
+        never = lambda item: self.fail("directors looked up for an exact title")
+        self.assertEqual(catalogs.same_film(row, [("Amelie", "2001", "a"), ("Amelie 2", "2001", "b")], never), "a")
+
+    def test_director_picks_between_films_with_the_same_title_and_year(self):
+        row = {"title": "Notturno ", "year": "2021", "directors": ["Gianfranco Rosi "]}
+        films = [("Notturno", "2020", "rosi"), ("Notturno", "2020", "other")]
+        directors = {"rosi": ["Gianfranco Rosi"], "other": ["Someone Else"]}
+        self.assertEqual(catalogs.same_film(row, films, directors.get), "rosi")
+        self.assertIsNone(catalogs.same_film(dict(row, directors=[]), films, directors.get))
+
+    def test_words_must_begin_the_title(self):
+        row = {"title": "The Order", "year": "2024", "directors": ["Justin Kurzel"]}
+        self.assertIsNone(catalogs.same_film(row, [("New Order", "2024", "x")], lambda item: ["Justin Kurzel"]))
+
+
 class RefreshTests(unittest.TestCase):
     def test_single_refresh_stale_failure_restart_and_recovery(self):
         entered, release = Event(), Event()
