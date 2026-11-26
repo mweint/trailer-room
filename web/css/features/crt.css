@@ -27,25 +27,16 @@
   border-radius: 6px;
 }
 
-/* The tube optics (convergence, bloom, halation: #crt-optics in index.html), in one pass. Chromium filters the
-   composed picture behind this layer, because filtering the iframe itself there can drop video frames. */
+/* The tube optics (convergence, bloom, halation: #crt-optics in index.html), in one pass over the composed picture
+   behind this layer. Chromium only: Firefox and Safari do not apply SVG filters to a backdrop. Filtering the
+   picture itself instead is no way round it: the playing video then goes black in Firefox and can drop frames in
+   Chromium. Other browsers show the raster alone. */
 [data-crt] .tube-optics {
   display: block;
   position: absolute;
   inset: 2px;
   border-radius: 6px;
   backdrop-filter: url(#crt-optics);
-}
-
-/* Firefox and Safari do not apply SVG filters to a backdrop, so they filter the picture itself. */
-@supports (-moz-appearance: none) or (font: -apple-system-body) {
-  [data-crt] .tube-optics {
-    display: none;
-  }
-
-  [data-crt] :is(.screen-art, .screen-embed) {
-    filter: url(#crt-optics);
-  }
 }
 
 [data-crt] .raster {
