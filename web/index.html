@@ -32,22 +32,32 @@
 <body>
   <svg width="0" height="0" class="definitions" aria-hidden="true">
     <defs>
-      <filter id="crt-convergence" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
-        <!-- The CSS corner mask mixes this one-pixel red-beam shift into the picture. -->
+      <filter id="crt-optics" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <!-- Convergence: the red beam lands a pixel to the right, mixed in toward the corners (none inside 55% of
+             the way out, a third at the corners), as on a tube whose beams drift apart away from the centre. -->
         <feOffset in="SourceGraphic" dx="1" result="shifted"/>
         <feColorMatrix in="shifted" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red"/>
         <feColorMatrix in="SourceGraphic" values="0 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0" result="cyan"/>
-        <feBlend in="red" in2="cyan" mode="screen"/>
-      </filter>
-      <filter id="crt-bloom" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
-        <!-- Spread a small fraction of bright phosphor light over the sharp picture. -->
-        <feComponentTransfer in="SourceGraphic">
+        <feBlend in="red" in2="cyan" mode="screen" result="misconverged"/>
+        <feImage preserveAspectRatio="none" result="corners" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><radialGradient id='g' r='.7071'><stop offset='.55' stop-opacity='0'/><stop offset='1' stop-opacity='.333'/></radialGradient><rect width='100' height='100' fill='url(%23g)'/></svg>"/>
+        <feComposite in="misconverged" in2="corners" operator="in" result="edges"/>
+        <feComposite in="edges" in2="SourceGraphic" operator="over" result="picture"/>
+        <!-- Bloom and halation: the brightest phosphor light, spread a little (bloom) and, fainter, widely through
+             the glass (halation), screened over the sharp picture. -->
+        <feComponentTransfer in="picture" result="bright">
           <feFuncR type="linear" slope=".3" intercept="-.2"/>
           <feFuncG type="linear" slope=".3" intercept="-.2"/>
           <feFuncB type="linear" slope=".3" intercept="-.2"/>
         </feComponentTransfer>
-        <feGaussianBlur stdDeviation="2"/>
-        <feBlend in2="SourceGraphic" mode="screen"/>
+        <feGaussianBlur in="bright" stdDeviation="2" result="bloom"/>
+        <feGaussianBlur in="bright" stdDeviation="14" result="spread"/>
+        <feComponentTransfer in="spread" result="halation">
+          <feFuncR type="linear" slope=".6"/>
+          <feFuncG type="linear" slope=".6"/>
+          <feFuncB type="linear" slope=".6"/>
+        </feComponentTransfer>
+        <feBlend in="bloom" in2="picture" mode="screen" result="bloomed"/>
+        <feBlend in="halation" in2="bloomed" mode="screen"/>
       </filter>
       <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
       <symbol id="i-next" viewBox="0 0 24 24"><path d="m5 5 11 7-11 7z" fill="currentColor" stroke="none"/><path d="M18 5v14"/></symbol>
@@ -74,7 +84,6 @@
         <div id="screen" class="screen">
           <div id="art" class="screen-art"></div><div id="embed" class="screen-embed"></div>
           <div class="tube-optics" aria-hidden="true"></div>
-          <div class="tube-convergence" aria-hidden="true"></div>
           <div class="raster" aria-hidden="true">
             <svg viewBox="0 0 1000 562.5" preserveAspectRatio="none">
               <path fill="#060707" fill-rule="evenodd" d="M0 0h1000v562.5H0z M1.8 12Q2 3 13 2.8Q500 -1 987 2.8Q998 3 998.2 12Q1001 280 998.2 550.5Q998 559.5 987 559.7Q500 563.5 13 559.7Q2 559.5 1.8 550.5Q-1 280 1.8 12Z"/>

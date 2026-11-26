@@ -13,8 +13,7 @@
   pointer-events: none;
 }
 
-.tube-optics,
-.tube-convergence {
+.tube-optics {
   display: none;
   pointer-events: none;
 }
@@ -28,23 +27,25 @@
   border-radius: 6px;
 }
 
-[data-crt] :is(.tube-optics, .tube-convergence) {
-  /* Filter the composed picture; filtering the iframe itself can omit video frames. */
+/* The tube optics (convergence, bloom, halation: #crt-optics in index.html), in one pass. Chromium filters the
+   composed picture behind this layer, because filtering the iframe itself there can drop video frames. */
+[data-crt] .tube-optics {
   display: block;
   position: absolute;
   inset: 2px;
   border-radius: 6px;
+  backdrop-filter: url(#crt-optics);
 }
 
-[data-crt] .tube-optics {
-  -webkit-backdrop-filter: url(#crt-bloom);
-  backdrop-filter: url(#crt-bloom);
-}
+/* Firefox and Safari do not apply SVG filters to a backdrop, so they filter the picture itself. */
+@supports (-moz-appearance: none) or (font: -apple-system-body) {
+  [data-crt] .tube-optics {
+    display: none;
+  }
 
-[data-crt] .tube-convergence {
-  -webkit-backdrop-filter: url(#crt-convergence);
-  backdrop-filter: url(#crt-convergence);
-  mask-image: radial-gradient(ellipse farthest-corner, transparent 55%, #0005);
+  [data-crt] :is(.screen-art, .screen-embed) {
+    filter: url(#crt-optics);
+  }
 }
 
 [data-crt] .raster {
