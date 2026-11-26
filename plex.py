@@ -1,5 +1,5 @@
-"""Optional installation-wide Plex film sources: one Plex server and every film library on it, each its own source
-("plex-<library key>"), each switched on or off where it is listed. Only discovery-issued server tokens persist."""
+"""Optional installation-wide Plex film sources: one Plex server and the film libraries chosen on it, each its own
+source ("plex-<library key>"), each switched on or off where it is listed. Only discovery-issued server tokens persist."""
 
 import hashlib
 import json
@@ -176,7 +176,41 @@ class PlexSource:
         digest = hashlib.sha256(device_key.encode()).hexdigest()
         return bool(device_key) and secrets.compare_digest(digest, self.saved.get("device_hash", ""))
 
+    def import_chosen(self, server, body, offered):
+        """The libraries named in body["library"] (comma-separated keys from `offered`), imported now."""
+        keys = list(dict.fromkeys(k for k in body.get("library", "").split(",") if k))
+        if not keys or any(key not in offered for key in keys):
+            raise PlexError("Choose at least one library from the list.")
+        now = int(time.time())
+        imported = []
+        for key in keys:
+            library, rows = film_rows(server, key, offered[key])
+            imported.append({"key": key, "library": library, "rows": rows, "updated": now, "attempted": now,
+                             "error": ""})
+        return imported
+
+    def manage(self, action, body, device_key):
+        """Change the connected server's libraries from the browser that connected it, without a new sign-in.
+        "libraries" lists the server's film libraries; "connect" saves a new choice. Other browsers sign in."""
+        with self.lock:
+            data = self.saved
+            if not data or not self.owns(device_key):
+                return {"signInRequired": True}
+        _, offered = sections(data["server"])
+        if action == "libraries":
+            return {"libraries": choices(offered)}
+        imported = self.import_chosen(data["server"], body, offered)
+        with self.lock:
+            if self.saved is not data:
+                raise PlexError("The Plex connection changed. Start again.")
+            self.write(dict(data, libraries=imported))
+            self.rows = self.registered(self.saved)
+            self.running = None
+        return {}
+
     def action(self, action, body, device_key=""):
+        if action in ("libraries", "connect") and not body.get("flow"):
+            return self.manage(action, body, device_key)
         if action == "disconnect" and not body.get("flow"):
             with self.lock:
                 if not self.saved:
@@ -220,17 +254,9 @@ class PlexSource:
                 _, libraries = sections(server)
                 flow.setdefault("libraries", {})[body["server"]] = libraries
                 return {"libraries": choices(libraries)}
-            # Every film library on the server, unless "library" names some (comma-separated).
-            offered = flow.get("libraries", {}).get(body["server"], {})
-            keys = list(dict.fromkeys(k for k in body.get("library", "").split(",") if k)) or list(offered)
-            if action != "connect" or not keys or any(key not in offered for key in keys):
-                raise PlexError("This server has no accessible film libraries.")
-            now = int(time.time())
-            imported = []
-            for key in keys:
-                library, rows = film_rows(server, key, offered[key])
-                imported.append({"key": key, "library": library, "rows": rows, "updated": now, "attempted": now,
-                                 "error": ""})
+            if action != "connect":
+                raise PlexError("Unknown Plex action.")
+            imported = self.import_chosen(server, body, flow.get("libraries", {}).get(body["server"], {}))
             with self.lock:
                 self.check_owner(flow["owner"])
                 if self.flows.get(ticket) is not flow:
@@ -258,26 +284,17 @@ class PlexSource:
             Thread(target=self.update, args=(data,), daemon=True).start()
 
     def update(self, data):
-        """Re-import every film library on the server, so libraries added or removed there follow on their own.
-        If the server cannot be reached, each library keeps its last good list and shows the error."""
+        """Re-import the chosen libraries. A library that fails keeps its last good list and shows the error."""
         now = int(time.time())
-        reason = lambda exc: str(exc) if isinstance(exc, PlexError) else "Could not update the Plex library."
-        try:
-            _, offered = sections(data["server"])
-        except (PlexError, OSError, ValueError, TypeError, KeyError) as exc:
-            offered = None
-            libraries = [dict(item, attempted=now, error=reason(exc)) for item in data["libraries"]]
-        if offered is not None:
-            previous = {item["key"]: item for item in data["libraries"]}
-            libraries = []
-            for key, library in sorted(offered.items(), key=lambda pair: pair[1]["name"].casefold()):
-                result = dict(previous.get(key, {"key": key, "library": library, "rows": [], "updated": 0}), attempted=now)
-                try:
-                    library, rows = film_rows(data["server"], key, library)
-                    result.update(library=library, rows=rows, updated=now, error="")
-                except (PlexError, OSError, ValueError, TypeError, KeyError) as exc:
-                    result["error"] = reason(exc)
-                libraries.append(result)
+        libraries = []
+        for item in data["libraries"]:
+            result = dict(item, attempted=now)
+            try:
+                library, rows = film_rows(data["server"], item["key"], item["library"])
+                result.update(library=library, rows=rows, updated=now, error="")
+            except (PlexError, OSError, ValueError, TypeError, KeyError) as exc:
+                result["error"] = str(exc) if isinstance(exc, PlexError) else "Could not update the Plex library."
+            libraries.append(result)
         with self.lock:
             if self.running is not data:
                 return

@@ -166,16 +166,30 @@ class PlexTests(unittest.TestCase):
         self.assertEqual([snapshot["sources"][s]["name"] for s in ("plex-7", "plex-8")], ["Festival picks", "Family"])
         self.assertEqual(len(snapshot["catalogs"]["plex-7"]), 1)
 
-    def test_every_film_library_is_imported_and_followed(self):
+    def test_only_chosen_libraries_are_imported_and_refreshed(self):
         flow = dict(self.sign_in(), server="home")
         self.source.action("libraries", flow)
-        self.source.action("connect", flow)
-        self.assertEqual(self.snapshot()["plex"]["libraries"], ["plex-7", "plex-8"])
-        # A library removed on the server drops out at the next refresh.
-        self.source.write(dict(self.source.saved, libraries=self.source.saved["libraries"][:1]))
+        with self.assertRaises(plex.PlexError):
+            self.source.action("connect", flow)
+        self.source.action("connect", dict(flow, library="7"))
+        self.assertEqual(self.snapshot()["plex"]["libraries"], ["plex-7"])
         self.source.running = self.source.saved
         self.source.update(self.source.saved)
-        self.assertEqual(sorted(self.snapshot()["plex"]["libraries"]), ["plex-7", "plex-8"])
+        self.assertEqual(self.snapshot()["plex"]["libraries"], ["plex-7"])
+        self.assertFalse(any("/8/all" in url for url in self.remote.calls))
+
+    def test_connecting_browser_changes_libraries_without_sign_in(self):
+        flow = dict(self.sign_in(), server="home")
+        self.source.action("libraries", flow)
+        key = self.source.action("connect", dict(flow, library="7"))["device_key"]
+        self.assertTrue(self.source.action("libraries", {}, "wrong")["signInRequired"])
+        self.assertTrue(self.source.action("connect", {"library": "8"}, "wrong")["signInRequired"])
+        listed = self.source.action("libraries", {}, key)["libraries"]
+        self.assertEqual([c["name"] for c in listed], ["Family", "Festival picks"])
+        with self.assertRaises(plex.PlexError):
+            self.source.action("connect", {"library": ""}, key)
+        self.source.action("connect", {"library": "7,8"}, key)
+        self.assertEqual(self.snapshot()["plex"]["libraries"], ["plex-7", "plex-8"])
 
     def test_single_library_file_from_before_is_read(self):
         old = {"owner": "test-user", "server": {"name": "Home Cinema", "client": "c", "urls": [], "token": "t"},

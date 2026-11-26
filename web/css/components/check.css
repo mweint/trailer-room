@@ -1,0 +1,48 @@
+/* Check: a visually hidden checkbox immediately followed by .check, a square tick box. A check picks items from a
+   list to be added (Plex libraries); a switch turns something on or off. It sits in a .switch-row in place of the
+   switch. */
+input:has(+ .check) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.check {
+  --check-size: 16px;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--check-size);
+  height: var(--check-size);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-placeholder);
+  transition: background-color var(--motion-fast) var(--ease-colour), border-color var(--motion-fast) var(--ease-colour);
+}
+
+/* The tick: two borders of a rotated box. */
+.check::after {
+  content: "";
+  width: 4px;
+  height: 8px;
+  margin-top: -2px;
+  border: solid var(--color-surface-raised);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  opacity: 0;
+}
+
+input:checked + .check {
+  background: var(--color-text);
+  border-color: var(--color-text);
+}
+
+input:checked + .check::after {
+  opacity: 1;
+}
+
+input:focus-visible + .check {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}

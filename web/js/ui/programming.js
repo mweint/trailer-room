@@ -102,37 +102,63 @@ function renderSources() {
   $("sources").replaceChildren(...rows);
 }
 
-// The Plex section, as a server is listed in Infuse or Apple TV: a heading naming the server with its action, and
-// every film library on it as a switch row. Before connecting: Connect. After sign-in, only for accounts with
-// several servers: a server choice and Cancel.
+// A library offered for adding: a check row (components/check.css), ticked when it is to be added.
+function pickRow({id, name}, chosen) {
+  const label = el("label", "switch-row");
+  const input = el("input");
+  input.type = "checkbox";
+  input.checked = chosen.has(id);
+  input.dataset.source = "pick-" + id;
+  input.onchange = () => plexActions.tick(id, input.checked);
+  label.append(el("span", "switch-row-label", name), input, el("span", "check"));
+  return label;
+}
+
+// The Plex section, as a server is listed in Infuse or Apple TV: a heading naming the server with its actions, and
+// the libraries added from it as switch rows. Before connecting: Connect. After sign-in, for accounts with several
+// servers: a server choice. Then, and on Edit: the server's film libraries to tick, with Cancel and Save.
 function renderPlex() {
   const plex = plexConnection();
-  const servers = plexActions.choosing?.();
+  const asking = plexActions.choosing?.();
   const focused = focusedSource($("plexRows"));
   const rows = [];
-  let action;
-  if (servers) {
-    action = link("Cancel", () => plexActions.cancel());
+  let actions;
+  let label = "Plex";
+  if (asking?.servers) {
+    actions = [link("Cancel", () => plexActions.cancel())];
     const field = el("label", "switch-row");
     const select = el("select", "select");
-    select.append(new Option("Choose a server", ""), ...servers.map(item => new Option(item.name, item.id)));
+    select.append(new Option("Choose a server", ""), ...asking.servers.map(item => new Option(item.name, item.id)));
     select.onchange = () => plexActions.chooseServer(select.value);
     field.append(el("span", "switch-row-label", "Server"), select);
     rows.push(field);
+  } else if (asking?.picking) {
+    const {name, libraries, chosen} = asking.picking;
+    label = "Plex · " + name;
+    const save = el("button", "button button--primary", "Save");
+    save.type = "button";
+    save.disabled = !chosen.size;
+    save.onclick = () => plexActions.save();
+    actions = [link("Cancel", () => plexActions.cancel()), save];
+    rows.push(el("p", "programming-note", "Choose the libraries to add."), ...libraries.map(l => pickRow(l, chosen)));
   } else if (plex) {
-    action = link("Remove", () => plexActions.remove());
+    label = "Plex · " + plex.server;
+    actions = [link("Edit", () => plexActions.edit()), link("Remove", () => plexActions.remove())];
     for (const key of plex.libraries) {
       if (SOURCES[key]) {
         rows.push(...libraryRow(key, SOURCES[key], focused));
       }
     }
   } else {
-    action = link("Connect", () => plexActions.connect());
+    actions = [link("Connect", () => plexActions.connect())];
     rows.push(el("p", "programming-note", "Add the films from your own Plex libraries."));
   }
-  $("plexLabel").textContent = plex && !servers ? "Plex · " + plex.server : "Plex";
-  $("plexActions").replaceChildren(action);
+  $("plexLabel").textContent = label;
+  $("plexActions").replaceChildren(...actions);
   $("plexRows").replaceChildren(...rows);
+  if (focused?.startsWith("pick-")) {
+    $("plexRows").querySelector(`[data-source="${focused}"]`)?.focus({preventScroll: true});
+  }
 }
 
 // Redraws the Plex section, animating its height when opening (true) or closing (false) is given.

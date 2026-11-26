@@ -58,7 +58,8 @@ input:focus-visible + .switch {
 }
 
 /* Switch row: a label holding a name, an optional count and a switch, so a click anywhere on it flips the switch.
-   Used for plain settings (Include unrated films) and Plex libraries. A select may take the switch's place. */
+   Used for plain settings (Include unrated films) and Plex libraries. A select or a check may take the switch's
+   place. */
 .switch-row {
   display: flex;
   align-items: center;
