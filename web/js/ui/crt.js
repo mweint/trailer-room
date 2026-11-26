@@ -2,66 +2,35 @@
 import {$} from "../dom.js";
 import {pref, setPref, savePrefs} from "../prefs.js";
 
-// Bake one physical RGB stripe and one scanline period. The browser composites this
-// tile over the live iframe, so the player never copies or reads a video frame.
+// Bake one physical RGB stripe (three device pixels wide) and one scanline period (pitch device pixels tall).
+// The browser composites this tile over the live iframe, so the player never copies or reads a video frame.
+// Each value is an overlay-blend level: .5 leaves the picture as it is, more brightens, less darkens.
 const textures = new Map();
-let gl;
-let program;
-
-function createProgram(context) {
-  const vertex = `#version 300 es
-    void main() {
-      vec2 p = vec2(gl_VertexID == 1 ? 3.0 : -1.0, gl_VertexID == 2 ? 3.0 : -1.0);
-      gl_Position = vec4(p, 0.0, 1.0);
-    }`;
-  const fragment = `#version 300 es
-    precision highp float;
-    uniform float pitch;
-    out vec4 color;
-    void main() {
-      float phase = (gl_FragCoord.y - 0.5) / pitch;
-      float gap = 0.5 - 0.5 * cos(6.2831853 * phase);
-      float beam = 0.525 - 0.12 * gap * gap;
-      vec3 stripe = vec3(-0.009);
-      stripe[int(gl_FragCoord.x)] = 0.018;
-      color = vec4(vec3(beam) + stripe, 1.0);
-    }`;
-  const result = context.createProgram();
-  for (const [type, source] of [[context.VERTEX_SHADER, vertex], [context.FRAGMENT_SHADER, fragment]]) {
-    const shader = context.createShader(type);
-    context.shaderSource(shader, source);
-    context.compileShader(shader);
-    context.attachShader(result, shader);
-    context.deleteShader(shader);
-  }
-  context.linkProgram(result);
-  if (context.getProgramParameter(result, context.LINK_STATUS)) {
-    return result;
-  }
-  context.deleteProgram(result);
-  return null;
-}
 
 function beamTexture(pitch) {
   if (textures.has(pitch)) {
     return textures.get(pitch);
   }
-  if (gl === undefined) {
-    gl = document.createElement("canvas").getContext("webgl2", {alpha: false, antialias: false, depth: false});
-    if (gl) {
-      program = createProgram(gl);
+  const canvas = document.createElement("canvas");
+  canvas.width = 3;
+  canvas.height = pitch;
+  const context = canvas.getContext("2d");
+  const image = context.createImageData(3, pitch);
+  for (let row = 0; row < pitch; row++) {
+    // The bright beam fills the bottom row of the period and fades into the dark gap between lines.
+    const gap = 0.5 - 0.5 * Math.cos(2 * Math.PI * (pitch - 1 - row) / pitch);
+    const beam = 0.525 - 0.12 * gap * gap;
+    for (let column = 0; column < 3; column++) {
+      for (let channel = 0; channel < 3; channel++) {
+        // Column 0 leans red, 1 green, 2 blue: the phosphor stripes of an aperture grille.
+        const level = beam + (channel === column ? 0.018 : -0.009);
+        image.data[(row * 3 + column) * 4 + channel] = Math.round(level * 255);
+      }
+      image.data[(row * 3 + column) * 4 + 3] = 255;
     }
   }
-  if (!program || gl.isContextLost()) {
-    return null;
-  }
-  gl.canvas.width = 3;
-  gl.canvas.height = pitch;
-  gl.viewport(0, 0, 3, pitch);
-  gl.useProgram(program);
-  gl.uniform1f(gl.getUniformLocation(program, "pitch"), pitch);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
-  const url = gl.canvas.toDataURL();
+  context.putImageData(image, 0, 0);
+  const url = canvas.toDataURL();
   textures.set(pitch, url);
   return url;
 }
@@ -75,10 +44,16 @@ function sizeTube() {
   const pitch = Math.max(2, Math.round(screen.clientHeight * dpr / 420));
   screen.style.setProperty("--beam", pitch / dpr + "px");
   screen.style.setProperty("--triad", 3 / dpr + "px");
-  const texture = beamTexture(pitch);
-  if (texture) {
-    screen.style.setProperty("--tube-texture", 'url("' + texture + '")');
-  }
+  screen.style.setProperty("--tube-texture", 'url("' + beamTexture(pitch) + '")');
+}
+
+// The tile is sized in device pixels, so it is baked again when the density changes without a resize
+// (the window moves to a screen with another scale).
+function watchDensity() {
+  matchMedia("(resolution: " + devicePixelRatio + "dppx)").addEventListener("change", () => {
+    sizeTube();
+    watchDensity();
+  }, {once: true});
 }
 
 function applyTube() {
@@ -90,6 +65,7 @@ function applyTube() {
 export function initCrt() {
   applyTube();
   new ResizeObserver(sizeTube).observe($("screen"));
+  watchDensity();
   $("crt").onclick = () => {
     setPref("crt", !pref("crt"));
     applyTube();

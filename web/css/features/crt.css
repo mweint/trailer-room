@@ -57,7 +57,7 @@
   inset: 0;
   /* Blend with the playing picture inside .screen. Mid-gray is neutral in overlay mode. */
   mix-blend-mode: overlay;
-  background-image: var(--tube-texture, linear-gradient(#888, #686868));
+  background-image: var(--tube-texture);
   background-size: var(--triad, 3px) var(--beam, 3px);
   image-rendering: pixelated;
 }
