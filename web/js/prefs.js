@@ -10,6 +10,9 @@ try {
 const savedRating = US_RATINGS.includes(saved.maxRating) ? saved.maxRating : "";
 // Decades used to be a list of single decades; a saved list becomes the range that spans it.
 const savedDecades = Array.isArray(saved.decades) ? saved.decades.filter(Number.isInteger) : [];
+// A clip that failed permanently is left out for 30 days, then tried again, so a wrong entry heals itself.
+const DEAD_FOR = 30 * 24 * 60 * 60 * 1000;
+const savedDead = Array.isArray(saved.dead) ? saved.dead.filter(d => Date.now() - d?.at < DEAD_FOR) : [];
 
 function savedDecade(value, spanEnd) {
   return Number.isInteger(value) ? value : savedDecades.length ? spanEnd(...savedDecades) : null;
@@ -25,6 +28,7 @@ const prefs = {
   sourcesCollapsed: !!saved.sourcesCollapsed,
   hidden: saved.hidden || [],
   skipped: saved.skipped || [],
+  dead: savedDead,
   crt: !!saved.crt,
   wide: !!saved.wide,
   volume: saved.volume ?? null,

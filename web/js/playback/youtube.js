@@ -1,7 +1,7 @@
 // YouTube adapter: wraps one YT.Player iframe, which can be reused for the next trailer.
 //
 // hooks (shared with the Vimeo adapter): active() rebind(run) state(on) position(seconds, duration)
-// ended() failed() blocked() audioReady(volume) ready() freshEmbed() watchForPlayback(reused)
+// ended() failed(permanent) blocked() audioReady(volume) ready() freshEmbed() watchForPlayback(reused)
 // selectedId() title() captionsWanted()
 
 export function youTubeEmbedUrl(id) {
@@ -88,11 +88,13 @@ export function createYouTube(target, hooks) {
     }
   }
 
-  function onError() {
+  // 100: the video was removed or made private. 101 and 150: its owner does not allow it to play on other sites.
+  // None of these will play on a later try; any other code (a player fault) may.
+  function onError(e) {
     if (hooks.active() && reused && !hasPlayed) {
       hooks.freshEmbed();
     } else {
-      hooks.failed();
+      hooks.failed([100, 101, 150].includes(e.data));
     }
   }
 

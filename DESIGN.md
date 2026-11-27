@@ -150,7 +150,7 @@ catalog.js         source list (Plex is added and removed at runtime), merge, ra
 library.js         loaded catalogs, merged films, source status, film detail cache, polling (no DOM)
 playback/
   controller.js    current film and clip, advance, retry, failure counting
-  rotation.js      queue order: shuffle scores, seen, unavailable and broken sets
+  rotation.js      queue order: shuffle scores, seen, unavailable and broken sets; clips that failed permanently, saved for 30 days
   player.js        generation counter, mount, idle YouTube reuse, reset, audio, captions
   sdk.js           provider script loader
   youtube.js       YouTube adapter

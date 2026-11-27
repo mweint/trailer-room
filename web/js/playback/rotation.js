@@ -3,7 +3,7 @@
 // dealt in advance, so Up next continues past the end of this one. Also what has been seen and cannot play. No DOM.
 import {matches} from "../catalog.js";
 import {allFilms, enabled, hidden} from "../library.js";
-import {pref} from "../prefs.js";
+import {pref, addToList, savePrefs} from "../prefs.js";
 
 const scores = new Map();
 const nextScores = new Map();
@@ -80,7 +80,7 @@ export function avoidRepeat() {
 
 export function playableClips(data) {
   return data.videos.filter(v => !broken.has(videoKey(v)) && !seenVideos.has(videoKey(v)) &&
-    !pref("skipped").some(s => s.video === videoKey(v)));
+    !pref("skipped").some(s => s.video === videoKey(v)) && !pref("dead").some(d => d.video === videoKey(v)));
 }
 
 export function hasSeenFilms() {
@@ -115,8 +115,14 @@ export function markClipSeen(clip) {
   seenVideos.add(videoKey(clip));
 }
 
-export function markClipBroken(clip) {
+// A broken clip is left out for the rest of this visit. One that failed permanently is also saved (the "dead"
+// preference), so later visits do not try it again until the entry expires.
+export function markClipBroken(clip, permanent) {
   broken.add(videoKey(clip));
+  if (permanent && !pref("dead").some(d => d.video === videoKey(clip))) {
+    addToList("dead", {video: videoKey(clip), at: Date.now()});
+    savePrefs();
+  }
 }
 
 export function notePlayed(film) {

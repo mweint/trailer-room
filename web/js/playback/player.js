@@ -17,7 +17,7 @@ let view;
 let film;
 
 // view: the page (see main.js). film: the controller's side of playback, with
-// clip() title() loading() started() renderFilm() advance() clipFailed(run)
+// clip() title() loading() started() renderFilm() advance() clipFailed(run, permanent)
 // pauseForRetry(message) playbackConfirmed()
 export function connectPlayer(viewHooks, filmHooks) {
   view = viewHooks;
@@ -142,7 +142,7 @@ function mountHooks(firstRun) {
     watchForPlayback,
     state,
     blocked,
-    failed: () => film.clipFailed(run),
+    failed: permanent => film.clipFailed(run, permanent),
     ended: () => film.advance(),
     ready: () => film.renderFilm(),
     position: (seconds, duration) => view.position(seconds, duration),

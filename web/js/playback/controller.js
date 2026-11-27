@@ -237,11 +237,12 @@ function pauseForRetry(message) {
   view.notice(message);
 }
 
-function clipFailed(run) {
+// permanent: the provider says this clip will never play here, so it is remembered past this visit.
+function clipFailed(run, permanent) {
   if (!isCurrentRun(run) || !clip) {
     return;
   }
-  markClipBroken(clip);
+  markClipBroken(clip, permanent);
   stopWatchdog();
   if (++embedFailures >= 5) {
     pauseForRetry("Several embeds failed. Check your network or browser settings, then retry.");
