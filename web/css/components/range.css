@@ -1,5 +1,8 @@
-/* Range: the one slider. Variants: --timeline, --volume. JavaScript sets --fill to the played or chosen fraction. */
-.range {
+/* Range: the one slider. Variants: --timeline, --volume. JavaScript sets --fill to the played or chosen fraction.
+   Range pair: two ranges on one track, for choosing a span between two ends (decades). The handles may cross;
+   the span is whatever lies between them. JavaScript sets --span-start and --span-end, each from 0 to 1. */
+.range,
+.range-pair {
   --range-track: 3px;
   --range-thumb: 10px;
   --range-rest: color-mix(in srgb, var(--color-text-muted) 65%, transparent);
@@ -28,7 +31,74 @@
   margin: 0 var(--space-2) 0 0;
 }
 
+/* Without the drawn track (forced colours) the pair is two ordinary sliders, one above the other. */
+.range-pair {
+  --range-thumb: 14px;
+  --range-height: var(--control-sm);
+  display: grid;
+}
+
+.range-pair > .range {
+  --range-thumb: inherit;
+  width: 100%;
+  height: var(--range-height);
+  margin: 0;
+}
+
+.range-pair > .range:disabled {
+  cursor: default;
+}
+
 @media (forced-colors: none) {
+  /* Both ranges share one cell. The pair draws the track, lit between the two handles; a handle's centre
+     travels from half a handle inside one edge to half a handle inside the other, and the lit part follows it.
+     Only the handles take the pointer, so either can be reached wherever the other sits. */
+  .range-pair {
+    --span-travel: calc(100% - var(--range-thumb));
+    --span-from: calc(var(--range-thumb) / 2 + var(--span-start, 0) * var(--span-travel));
+    --span-to: calc(var(--range-thumb) / 2 + var(--span-end, 1) * var(--span-travel));
+    background: linear-gradient(to right, var(--range-rest) var(--span-from), var(--color-text) var(--span-from), var(--color-text) var(--span-to), var(--range-rest) var(--span-to)) center / 100% var(--range-track) no-repeat;
+  }
+
+  .range-pair > .range {
+    grid-area: 1 / 1;
+    background: none;
+    pointer-events: none;
+  }
+
+  .range-pair > .range::-webkit-slider-thumb {
+    background: var(--color-text);
+    pointer-events: auto;
+  }
+
+  .range-pair > .range::-moz-range-thumb {
+    background: var(--color-text);
+    pointer-events: auto;
+  }
+
+  /* The focus ring goes round the handle in use, not the whole shared track. */
+  .range-pair > .range:focus-visible {
+    outline: none;
+  }
+
+  .range-pair > .range:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 3px;
+  }
+
+  .range-pair > .range:focus-visible::-moz-range-thumb {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 3px;
+  }
+
+  .range-pair > .range:disabled::-webkit-slider-thumb {
+    opacity: 0;
+  }
+
+  .range-pair > .range:disabled::-moz-range-thumb {
+    opacity: 0;
+  }
+
   .range {
     appearance: none;
     padding: 0;
@@ -72,6 +142,11 @@
 }
 
 @media (pointer: coarse) {
+  .range-pair {
+    --range-thumb: 22px;
+    --range-height: var(--control-touch);
+  }
+
   .range--timeline {
     height: var(--control-touch);
     margin-top: 0;

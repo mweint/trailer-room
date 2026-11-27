@@ -11,6 +11,8 @@ const FIRST_GENRES = 6;
 
 let notice = () => {};
 let moreGenres = false;
+let decades = [];
+let draggingDecade = false;
 
 function changed() {
   savePrefs();
@@ -49,42 +51,73 @@ function inSources() {
 // Every decade from the earliest to the latest among the films, widened to take in the chosen range.
 function decadeSpan(films) {
   const known = [...films.map(decadeOf), pref("decadeFrom"), pref("decadeTo")].filter(Boolean);
-  const decades = [];
+  const span = [];
   for (let d = Math.min(...known); d <= Math.max(...known); d += 10) {
-    decades.push(d);
+    span.push(d);
   }
-  return decades;
+  return span;
 }
 
-// Options are rebuilt only when they change, so a render never disturbs an open select.
-function fillDecades(select, decades, value) {
-  const key = decades.join();
-  if (select.dataset.decades !== key) {
-    select.dataset.decades = key;
-    select.replaceChildren(...decades.map(d => new Option(d + "s", d)));
-  }
-  select.value = value;
-  select.disabled = !decades.length;
+// The two handles as positions in decades, lower first: the handles may cross while one is dragged.
+function decadeEnds() {
+  const a = $("decadeFrom").valueAsNumber;
+  const b = $("decadeTo").valueAsNumber;
+  return [Math.min(a, b), Math.max(a, b)];
 }
 
-// Each select offers only the decades that keep from at or before to. An end resting on the first or last
-// decade is saved as null (open), so the range keeps taking in whatever lies beyond it.
+// Lights the track between the handles and writes the chosen range beside the group's label.
+function paintDecades() {
+  const [low, high] = decadeEnds();
+  const last = Math.max(decades.length - 1, 1);
+  $("decades").style.setProperty("--span-start", low / last);
+  $("decades").style.setProperty("--span-end", high / last);
+  $("decadeValue").textContent = !decades.length ? "" :
+    low === high ? decades[low] + "s" : decades[low] + "s\u2013" + decades[high] + "s";
+  for (const input of [$("decadeFrom"), $("decadeTo")]) {
+    input.setAttribute("aria-valuetext", decades.length ? decades[input.valueAsNumber] + "s" : "");
+  }
+}
+
+// A handle resting on the first or last decade is saved as null (open), so the range keeps taking in whatever
+// lies beyond it. A handle being dragged is left alone.
 function renderDecades(films) {
-  const decades = decadeSpan(films);
-  const from = pref("decadeFrom") ?? decades[0];
-  const to = pref("decadeTo") ?? decades.at(-1);
-  fillDecades($("decadeFrom"), decades.filter(d => d <= to), from);
-  fillDecades($("decadeTo"), decades.filter(d => d >= from), to);
-  $("decadeFrom").onchange = () => {
-    const value = Number($("decadeFrom").value);
-    setPref("decadeFrom", value === decades[0] ? null : value);
-    changed();
-  };
-  $("decadeTo").onchange = () => {
-    const value = Number($("decadeTo").value);
-    setPref("decadeTo", value === decades.at(-1) ? null : value);
-    changed();
-  };
+  if (draggingDecade) {
+    return;
+  }
+  decades = decadeSpan(films);
+  const last = decades.length - 1;
+  const ends = [[$("decadeFrom"), pref("decadeFrom"), 0], [$("decadeTo"), pref("decadeTo"), last]];
+  for (const [input, decade, open] of ends) {
+    input.max = Math.max(last, 0);
+    input.value = decade === null ? open : decades.indexOf(decade);
+    input.disabled = last < 1;
+  }
+  paintDecades();
+}
+
+// While a handle moves only the track and the label follow; the choice is applied when it is let go. If the
+// handles crossed, they trade places then, so each keeps its name (earliest, latest), and focus stays with the
+// handle that was moved.
+function initDecades() {
+  const inputs = [$("decadeFrom"), $("decadeTo")];
+  for (const input of inputs) {
+    input.oninput = () => {
+      draggingDecade = true;
+      paintDecades();
+    };
+    input.onchange = () => {
+      draggingDecade = false;
+      const [low, high] = decadeEnds();
+      if (inputs[0].valueAsNumber > inputs[1].valueAsNumber) {
+        inputs[0].value = low;
+        inputs[1].value = high;
+        inputs.find(other => other !== input).focus({preventScroll: true});
+      }
+      setPref("decadeFrom", low === 0 ? null : decades[low]);
+      setPref("decadeTo", high === decades.length - 1 ? null : decades[high]);
+      changed();
+    };
+  }
 }
 
 function renderGenres(films) {
@@ -134,6 +167,7 @@ export function renderFilters() {
 // notice(message) writes the status line under the player.
 export function initFilters(showNotice) {
   notice = showNotice;
+  initDecades();
   for (const rating of US_RATINGS) {
     $("maxRating").add(new Option(rating, rating));
   }

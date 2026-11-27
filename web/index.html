@@ -125,11 +125,10 @@
       <p id="plexMessage" class="collapse plex-message" role="status"></p>
     </section>
     <section class="programming-group" aria-labelledby="decadeLabel">
-      <h3 class="programming-label" id="decadeLabel">Decade</h3>
-      <div class="decade-filter">
-        <select id="decadeFrom" class="select" aria-label="From decade"></select>
-        <span>to</span>
-        <select id="decadeTo" class="select" aria-label="To decade"></select>
+      <div class="programming-header"><h3 class="programming-label" id="decadeLabel">Decade</h3><span id="decadeValue" class="panel-count"></span></div>
+      <div id="decades" class="range-pair" role="group" aria-labelledby="decadeLabel">
+        <input id="decadeFrom" class="range" type="range" min="0" max="0" step="1" value="0" aria-label="Earliest decade" disabled>
+        <input id="decadeTo" class="range" type="range" min="0" max="0" step="1" value="0" aria-label="Latest decade" disabled>
       </div>
     </section>
     <section class="programming-group" aria-labelledby="genreLabel">
