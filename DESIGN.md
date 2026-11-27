@@ -135,7 +135,7 @@ Features (`web/css/features/` and `web/js/ui/`). Each has a CSS file; the module
 | Dock | `.dock` | `dock.js`, `transport.js` | Auto-hide and view tools; title, timeline, transport buttons, volume |
 | Film info | `.film-info` | `film-info.js` | Title, credit, facts, description (three lines, More), film options menu |
 | Queue | `.queue` | `queue.js` | Up-next list, poster loading as rows scroll into view, list height |
-| Programming | `.programming` (a sheet) | `programming.js`, `filters.js`, `preferences.js`, `plex.js` | Everything about what plays, in groups divided by hairlines, each opening with a header (label, and its action on the right when it has one): Sources (logo rows with counts, status and retry), Plex (see the rule above), Decade, Genre (with "Still collecting" progress), Rating, then Hidden movies and Skipped trailers folded into one row each with a count. Live film count, Clear filters when nothing matches. Opened from the masthead button and the summary line under Up next. |
+| Programming | `.programming` (a sheet) | `programming.js`, `filters.js`, `preferences.js`, `plex.js` | Everything about what plays, in groups divided by hairlines, each opening with a header (label, and its action on the right when it has one): Sources (logo rows with counts, status and retry), Plex (see the rule above), Decade (a range: two selects, from and to; an end on the first or last decade is open), Genre (with "Still collecting" progress), Rating, then Hidden movies and Skipped trailers folded into one row each with a count. Live film count, Clear filters when nothing matches. Opened from the masthead button and the summary line under Up next, which names each filter once: the decade range (`1960s–1990s`, `1960s+`, `Up to 1990s`) and the first two genres with a count of the rest. |
 
 `theater.js` (theater mode, fullscreen; styled in `layout.css`) and `shortcuts.js` have no CSS file of their own.
 
@@ -157,7 +157,7 @@ playback/
   vimeo.js         Vimeo adapter
 ui/
   screen.js  crt.js  dock.js (auto-hide, view tools)  transport.js (title, timeline, buttons, volume)
-  film-info.js  queue.js  programming.js (sources, Plex group, count, summary)  filters.js (decade, genre, rating)
+  film-info.js  queue.js  programming.js (sources, Plex group, count, summary)  filters.js (decade range, genre, rating)
   preferences.js  plex.js (Plex logic; programming.js draws it)
   theater.js (theater mode, fullscreen)  shortcuts.js
 ```

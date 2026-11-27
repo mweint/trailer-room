@@ -1,5 +1,5 @@
 /* Programming: the sheet that decides what goes into the rotation. Source rows with status and retry notes,
-   the Plex section, decade and genre chips, the rating filter, the no-match note, and the summary under Up next. */
+   the Plex section, the decade range, genre chips, the rating filter, the no-match note, and the summary under Up next. */
 .programming {
   --source-logo-column: 40px;
   --source-row-height: var(--row);
@@ -170,6 +170,18 @@
 
 .source-issue {
   color: var(--color-warning);
+}
+
+/* The decade range: two selects, from and to, sharing the row. */
+.decade-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-ui);
+}
+
+.decade-filter > .select {
+  flex: 1;
 }
 
 .rating-filter {

@@ -176,6 +176,22 @@ function changed() {
   sourcesChanged();
 }
 
+// The decade range in a few characters: 1960s–1990s, 1960s+ when the end is open, Up to 1990s when the start is.
+function decadeRange() {
+  const from = pref("decadeFrom");
+  const to = pref("decadeTo");
+  if (from && to) {
+    return from === to ? from + "s" : from + "s–" + to + "s";
+  }
+  return from ? from + "s+" : to ? "Up to " + to + "s" : "";
+}
+
+// The first two chosen genres by name, the rest as a count, so the line stays one line.
+function genreList() {
+  const genres = pref("genres");
+  return genres.slice(0, 2).join(", ") + (genres.length > 2 ? " +" + (genres.length - 2) : "");
+}
+
 // One line under Up next that says what is applied; it opens the Programming sheet.
 function summary() {
   const on = Object.entries(SOURCES).filter(([key]) => sourceEnabled(key));
@@ -183,8 +199,8 @@ function summary() {
     on.length ? [...new Set(on.map(([, s]) => s.short || s.name))].join(", ") : "No sources";
   return [
     sources,
-    pref("decades").slice().sort().map(d => d + "s").join(", "),
-    pref("genres").join(", "),
+    decadeRange(),
+    genreList(),
     pref("maxRating") ? "Up to " + pref("maxRating") : "",
     pref("includeUnrated") ? "" : "No unrated"
   ].filter(Boolean).join(" · ");

@@ -77,7 +77,7 @@ export function genresOf(film) {
 // The programming filters other than sources: rating, decade and genre.
 export function fitsFilters(film) {
   return withinRating(film, pref("maxRating"), pref("includeUnrated")) &&
-    withinDecades(film, pref("decades")) && withinGenres(genresOf(film), pref("genres"));
+    withinDecades(film, pref("decadeFrom"), pref("decadeTo")) && withinGenres(genresOf(film), pref("genres"));
 }
 
 export function enabled(film) {

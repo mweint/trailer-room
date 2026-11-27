@@ -8,12 +8,19 @@ try {
   saved = JSON.parse(localStorage.getItem(STORE)) || {};
 } catch {}
 const savedRating = US_RATINGS.includes(saved.maxRating) ? saved.maxRating : "";
+// Decades used to be a list of single decades; a saved list becomes the range that spans it.
+const savedDecades = Array.isArray(saved.decades) ? saved.decades.filter(Number.isInteger) : [];
+
+function savedDecade(value, spanEnd) {
+  return Number.isInteger(value) ? value : savedDecades.length ? spanEnd(...savedDecades) : null;
+}
 
 const prefs = {
   enabled: {criterion: true, a24: true, neon: true, janus: true, ...saved.enabled},
   maxRating: savedRating,
   includeUnrated: typeof saved.includeUnrated === "boolean" ? saved.includeUnrated : !savedRating,
-  decades: Array.isArray(saved.decades) ? saved.decades.filter(Number.isInteger) : [],
+  decadeFrom: savedDecade(saved.decadeFrom, Math.min),
+  decadeTo: savedDecade(saved.decadeTo, Math.max),
   genres: Array.isArray(saved.genres) ? saved.genres.filter(g => typeof g === "string") : [],
   sourcesCollapsed: !!saved.sourcesCollapsed,
   hidden: saved.hidden || [],

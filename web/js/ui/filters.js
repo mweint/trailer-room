@@ -1,4 +1,4 @@
-// Filters in Programming: decade and genre chips, the rating filter, the genre collection progress, and the
+// Filters in Programming: the decade range, genre chips, the rating filter, the genre collection progress, and the
 // no-match note with Clear filters.
 import {$, el, resize, reveal} from "../dom.js";
 import {SOURCES, US_RATINGS, decadeOf, tally} from "../catalog.js";
@@ -46,9 +46,45 @@ function inSources() {
   return allFilms().filter(f => f.sources.some(s => sourceEnabled(s)));
 }
 
+// Every decade from the earliest to the latest among the films, widened to take in the chosen range.
+function decadeSpan(films) {
+  const known = [...films.map(decadeOf), pref("decadeFrom"), pref("decadeTo")].filter(Boolean);
+  const decades = [];
+  for (let d = Math.min(...known); d <= Math.max(...known); d += 10) {
+    decades.push(d);
+  }
+  return decades;
+}
+
+// Options are rebuilt only when they change, so a render never disturbs an open select.
+function fillDecades(select, decades, value) {
+  const key = decades.join();
+  if (select.dataset.decades !== key) {
+    select.dataset.decades = key;
+    select.replaceChildren(...decades.map(d => new Option(d + "s", d)));
+  }
+  select.value = value;
+  select.disabled = !decades.length;
+}
+
+// Each select offers only the decades that keep from at or before to. An end resting on the first or last
+// decade is saved as null (open), so the range keeps taking in whatever lies beyond it.
 function renderDecades(films) {
-  const decades = [...new Set([...films.map(decadeOf), ...pref("decades")])].filter(Boolean).sort((a, b) => a - b);
-  renderChips($("decades"), [chip("Any", "decades", null), ...decades.map(d => chip(d + "s", "decades", d))]);
+  const decades = decadeSpan(films);
+  const from = pref("decadeFrom") ?? decades[0];
+  const to = pref("decadeTo") ?? decades.at(-1);
+  fillDecades($("decadeFrom"), decades.filter(d => d <= to), from);
+  fillDecades($("decadeTo"), decades.filter(d => d >= from), to);
+  $("decadeFrom").onchange = () => {
+    const value = Number($("decadeFrom").value);
+    setPref("decadeFrom", value === decades[0] ? null : value);
+    changed();
+  };
+  $("decadeTo").onchange = () => {
+    const value = Number($("decadeTo").value);
+    setPref("decadeTo", value === decades.at(-1) ? null : value);
+    changed();
+  };
 }
 
 function renderGenres(films) {
@@ -83,7 +119,7 @@ function renderGenres(films) {
 }
 
 function filtersActive() {
-  return pref("decades").length || pref("genres").length || pref("maxRating") || !pref("includeUnrated");
+  return pref("decadeFrom") || pref("decadeTo") || pref("genres").length || pref("maxRating") || !pref("includeUnrated");
 }
 
 export function renderFilters() {
@@ -114,7 +150,8 @@ export function initFilters(showNotice) {
     changed();
   };
   $("clearFilters").onclick = () => {
-    setPref("decades", []);
+    setPref("decadeFrom", null);
+    setPref("decadeTo", null);
     setPref("genres", []);
     setPref("maxRating", "");
     setPref("includeUnrated", true);

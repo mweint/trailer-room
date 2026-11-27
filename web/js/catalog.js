@@ -41,8 +41,10 @@ export function decadeOf(film) {
   return Math.floor(Number(film.year) / 10) * 10;
 }
 
-export function withinDecades(film, decades) {
-  return !decades.length || decades.includes(decadeOf(film));
+// Decades are one unbroken range; an end that is null is open.
+export function withinDecades(film, from, to) {
+  const decade = decadeOf(film);
+  return (from === null || decade >= from) && (to === null || decade <= to);
 }
 
 // A film whose genres are not known yet does not match a genre choice.
@@ -50,7 +52,7 @@ export function withinGenres(genres, chosen) {
   return !chosen.length || genres.some(genre => chosen.includes(genre));
 }
 
-// Values present in a list of films, most common first (genres) or in order (decades).
+// Values present in a list of films, most common first (genres).
 export function tally(values) {
   const counts = new Map();
   for (const value of values) {
